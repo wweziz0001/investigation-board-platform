@@ -118,6 +118,19 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   return user;
 }
 
+// For API routes - accepts optional request for compatibility
+export async function getAuthUser(_request?: unknown): Promise<{ user: AuthUser | null; error?: string }> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { user: null, error: 'Not authenticated' };
+    }
+    return { user };
+  } catch {
+    return { user: null, error: 'Authentication failed' };
+  }
+}
+
 export async function authenticateUser(email: string, password: string): Promise<AuthResult> {
   // Find user by email
   const user = await db.user.findUnique({
