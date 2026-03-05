@@ -1,36 +1,25 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 
 // Types
 export interface TableInfo {
   name: string;
-  sqliteName: string;
-  type: string;
+  type: 'table' | 'view';
   rowCount: number;
   sizeBytes: number;
-  sizeFormatted: string;
-  columns?: ColumnInfo[];
+  columns: ColumnInfo[];
 }
 
 export interface ColumnInfo {
   name: string;
   type: string;
   nullable: boolean;
-  defaultValue?: string;
+  defaultValue: string | null;
   primaryKey: boolean;
-}
-
-export interface QueryResult {
-  success: boolean;
-  data: Record<string, unknown>[];
-  rows: Record<string, unknown>[];
-  columns: { name: string; type: string }[];
-  rowCount: number;
-  executionTime: number;
-  affectedRows?: number;
-  warning?: string;
-  error?: string;
-  truncated?: boolean;
+  foreignKey?: {
+    table: string;
+    column: string;
+  };
 }
 
 export interface SavedQuery {
@@ -39,319 +28,501 @@ export interface SavedQuery {
   description?: string;
   query: string;
   tags: string[];
-  createdAt: string;
-  lastUsed?: string;
-  useCount: number;
   isFavorite: boolean;
+  useCount: number;
+  createdAt: string;
+  lastUsedAt?: string;
 }
 
 export interface QueryHistoryItem {
   id: string;
-  sql: string;
   query: string;
-  status: 'success' | 'error';
   executionTime: number;
-  timestamp: string;
+  rowCount?: number;
+  status: 'success' | 'error';
+  errorMessage?: string;
+  timestamp: Date;
 }
 
-export interface QueryTab {
+export interface QueryResult {
+  data: Record<string, unknown>[];
+  columns: { name: string; type: string }[];
+  rowCount: number;
+  executionTime: number;
+  affectedRows?: number;
+  error?: string;
+}
+
+export interface EditorTab {
   id: string;
   name: string;
   query: string;
   result?: QueryResult;
   isSaved: boolean;
-}
-
-export interface DatabaseMetrics {
-  totalTables: number;
-  totalRows: number;
-  totalSize: number;
-  queryCount: number;
-  avgQueryTime: number;
-}
-
-export interface DatabaseState {
-  tables: TableInfo[];
-  savedQueries: SavedQuery[];
-  queryHistory: QueryHistoryItem[];
-  tabs: QueryTab[];
-  activeTabId: string | null;
-  connectionStatus: 'connected' | 'disconnected' | 'checking';
-  isLoadingTables: boolean;
   isExecuting: boolean;
-  isExecutingQuery: boolean;
-  currentQuery: string;
-  queryResult: QueryResult | null;
-  actions: string[];
-  metrics: DatabaseMetrics;
 }
 
-export interface DatabaseActions {
+export interface BackupRecord {
+  id: string;
+  name: string;
+  type: 'full' | 'schema-only' | 'data-only';
+  size: number;
+  status: 'completed' | 'failed' | 'in-progress';
+  createdAt: string;
+  checksum?: string;
+}
+
+export interface AuditLogItem {
+  id: string;
+  timestamp: string;
+  userId?: string;
+  userName?: string;
+  action: string;
+  resourceType: string;
+  resourceName: string;
+  resourceId?: string;
+  details?: string;
+  query?: string;
+  status: string;
+  errorMessage?: string;
+}
+
+interface DatabaseState {
+  // Connection State
+  connectionStatus: 'connected' | 'disconnected' | 'checking';
+  
   // Tables
-  fetchTables: () => Promise<void>;
+  tables: TableInfo[];
+  selectedTable: string | null;
+  tableStructure: ColumnInfo[] | null;
+  isLoadingTables: boolean;
   
-  // Queries
-  executeQuery: (query: string, tabId?: string) => Promise<QueryResult>;
-  fetchSavedQueries: () => Promise<void>;
-  saveQuery: (name: string, query: string, description?: string) => Promise<void>;
-  deleteSavedQuery: (id: string) => Promise<void>;
-  toggleFavorite: (id: string) => Promise<void>;
-  setCurrentQuery: (query: string) => void;
+  // Editor State
+  tabs: EditorTab[];
+  activeTabId: string | null;
+  queryHistory: QueryHistoryItem[];
+  savedQueries: SavedQuery[];
+  isExecuting: boolean;
   
-  // Tabs
-  createTab: () => void;
-  closeTab: (id: string) => void;
-  setActiveTab: (id: string) => void;
-  updateTabQuery: (id: string, query: string) => void;
+  // Backup State
+  backups: BackupRecord[];
+  isLoadingBackups: boolean;
   
-  // History
-  addToHistory: (query: string, status: 'success' | 'error', executionTime: number) => void;
-  clearHistory: () => void;
-  
-  // Connection
-  checkConnection: () => Promise<void>;
+  // Audit Logs
+  auditLogs: AuditLogItem[];
+  isLoadingAuditLogs: boolean;
   
   // Metrics
-  fetchMetrics: () => Promise<void>;
+  metrics: {
+    totalTables: number;
+    totalRows: number;
+    totalSize: number;
+    queryCount: number;
+    avgQueryTime: number;
+  };
   
-  // Reset
-  reset: () => void;
+  // Actions
+  actions: {
+    // Tables
+    fetchTables: () => Promise<void>;
+    selectTable: (tableName: string) => void;
+    fetchTableStructure: (tableName: string) => Promise<void>;
+    
+    // Query Editor
+    createTab: (name?: string) => string;
+    closeTab: (tabId: string) => void;
+    setActiveTab: (tabId: string) => void;
+    updateTabQuery: (tabId: string, query: string) => void;
+    executeQuery: (query: string, tabId?: string) => Promise<QueryResult>;
+    
+    // Query Management
+    fetchSavedQueries: () => Promise<void>;
+    saveQuery: (name: string, query: string, description?: string, tags?: string[]) => Promise<void>;
+    deleteSavedQuery: (id: string) => Promise<void>;
+    toggleFavorite: (id: string) => Promise<void>;
+    clearHistory: () => void;
+    
+    // Backup
+    fetchBackups: () => Promise<void>;
+    createBackup: (name: string, type?: 'full' | 'schema-only' | 'data-only') => Promise<void>;
+    deleteBackup: (id: string) => Promise<void>;
+    restoreBackup: (id: string) => Promise<void>;
+    
+    // Audit Logs
+    fetchAuditLogs: (limit?: number, offset?: number) => Promise<void>;
+    
+    // Metrics
+    fetchMetrics: () => Promise<void>;
+    
+    // Utility
+    checkConnection: () => Promise<boolean>;
+  };
 }
 
-const generateTabId = () => `tab-${Date.now()}`;
+// Tab name generator
+let tabCounter = 1;
+const generateTabName = () => `Query ${tabCounter++}`;
 
-const initialState: DatabaseState = {
-  tables: [],
-  savedQueries: [],
-  queryHistory: [],
-  tabs: [{ id: 'tab-1', name: 'Query 1', query: '', isSaved: false }],
-  activeTabId: 'tab-1',
-  connectionStatus: 'checking',
-  isLoadingTables: false,
-  isExecuting: false,
-  isExecutingQuery: false,
-  currentQuery: '',
-  queryResult: null,
-  actions: [],
-  metrics: {
-    totalTables: 0,
-    totalRows: 0,
-    totalSize: 0,
-    queryCount: 0,
-    avgQueryTime: 0,
-  },
-};
-
-export const useDatabaseStore = create<DatabaseState & DatabaseActions>()(
-  persist(
-    (set, get) => ({
-      ...initialState,
-
-      // Tables
-      fetchTables: async () => {
-        set({ isLoadingTables: true });
-        try {
-          const response = await fetch('/api/admin/db/tables');
-          const data = await response.json();
-          if (data.success) {
-            set({ tables: data.tables || [] });
-          }
-        } catch (error) {
-          console.error('Failed to fetch tables:', error);
-        } finally {
-          set({ isLoadingTables: false });
-        }
-      },
-
-      // Queries
-      setCurrentQuery: (query) => set({ currentQuery: query }),
-
-      executeQuery: async (query, tabId) => {
-        set({ isExecuting: true, isExecutingQuery: true });
-        const startTime = Date.now();
+export const useDatabaseStore = create<DatabaseState>()(
+  devtools(
+    persist(
+      (set, get) => ({
+        // Initial State
+        connectionStatus: 'checking',
+        tables: [],
+        selectedTable: null,
+        tableStructure: null,
+        isLoadingTables: false,
+        tabs: [],
+        activeTabId: null,
+        queryHistory: [],
+        savedQueries: [],
+        isExecuting: false,
+        backups: [],
+        isLoadingBackups: false,
+        auditLogs: [],
+        isLoadingAuditLogs: false,
+        metrics: {
+          totalTables: 0,
+          totalRows: 0,
+          totalSize: 0,
+          queryCount: 0,
+          avgQueryTime: 0,
+        },
         
-        try {
-          const response = await fetch('/api/admin/db/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query }),
-          });
-          const result = await response.json();
+        actions: {
+          // Tables
+          fetchTables: async () => {
+            set({ isLoadingTables: true });
+            try {
+              const response = await fetch('/api/admin/db/tables');
+              const result = await response.json();
+              if (result.success) {
+                set({ 
+                  tables: result.data?.tables || result.tables || [],
+                  connectionStatus: 'connected',
+                });
+              }
+            } catch (error) {
+              set({ connectionStatus: 'disconnected' });
+              console.error('Failed to fetch tables:', error);
+            } finally {
+              set({ isLoadingTables: false });
+            }
+          },
           
-          const executionTime = Date.now() - startTime;
+          selectTable: (tableName) => {
+            set({ selectedTable: tableName });
+          },
           
-          // Add to history
-          get().addToHistory(
-            query,
-            result.success ? 'success' : 'error',
-            executionTime
-          );
+          fetchTableStructure: async (tableName) => {
+            try {
+              const response = await fetch(`/api/admin/db/tables/${encodeURIComponent(tableName)}/structure`);
+              const result = await response.json();
+              if (result.success) {
+                set({ tableStructure: result.columns });
+              }
+            } catch (error) {
+              console.error('Failed to fetch table structure:', error);
+            }
+          },
           
-          // Update tab result
-          if (tabId) {
+          // Query Editor
+          createTab: (name) => {
+            const tabId = `tab-${Date.now()}`;
+            const tab: EditorTab = {
+              id: tabId,
+              name: name || generateTabName(),
+              query: '',
+              isSaved: false,
+              isExecuting: false,
+            };
             set((state) => ({
-              tabs: state.tabs.map((tab) =>
-                tab.id === tabId ? { ...tab, result } : tab
+              tabs: [...state.tabs, tab],
+              activeTabId: tabId,
+            }));
+            return tabId;
+          },
+          
+          closeTab: (tabId) => {
+            set((state) => {
+              const newTabs = state.tabs.filter(t => t.id !== tabId);
+              const newActiveId = state.activeTabId === tabId
+                ? newTabs[newTabs.length - 1]?.id || null
+                : state.activeTabId;
+              return { tabs: newTabs, activeTabId: newActiveId };
+            });
+          },
+          
+          setActiveTab: (tabId) => {
+            set({ activeTabId: tabId });
+          },
+          
+          updateTabQuery: (tabId, query) => {
+            set((state) => ({
+              tabs: state.tabs.map(t =>
+                t.id === tabId ? { ...t, query, isSaved: false } : t
               ),
             }));
-          }
+          },
           
-          set({ isExecuting: false, isExecutingQuery: false, queryResult: result });
-          return result;
-        } catch (error) {
-          set({ isExecuting: false, isExecutingQuery: false });
-          return {
-            success: false,
-            data: [],
-            columns: [],
-            rowCount: 0,
-            executionTime: Date.now() - startTime,
-            error: error instanceof Error ? error.message : 'Query failed',
-          };
-        }
-      },
-
-      fetchSavedQueries: async () => {
-        try {
-          const response = await fetch('/api/admin/db/saved-queries');
-          const data = await response.json();
-          if (data.success) {
-            set({ savedQueries: data.queries || [] });
-          }
-        } catch (error) {
-          console.error('Failed to fetch saved queries:', error);
-        }
-      },
-
-      saveQuery: async (name, query, description) => {
-        try {
-          const response = await fetch('/api/admin/db/saved-queries', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, query, description }),
-          });
-          const data = await response.json();
-          if (data.success) {
-            set((state) => ({
-              savedQueries: [...state.savedQueries, data.query],
-            }));
-          }
-        } catch (error) {
-          console.error('Failed to save query:', error);
-        }
-      },
-
-      deleteSavedQuery: async (id) => {
-        try {
-          await fetch(`/api/admin/db/saved-queries/${id}`, { method: 'DELETE' });
-          set((state) => ({
-            savedQueries: state.savedQueries.filter((q) => q.id !== id),
-          }));
-        } catch (error) {
-          console.error('Failed to delete saved query:', error);
-        }
-      },
-
-      toggleFavorite: async (id) => {
-        const query = get().savedQueries.find((q) => q.id === id);
-        if (!query) return;
-        
-        set((state) => ({
-          savedQueries: state.savedQueries.map((q) =>
-            q.id === id ? { ...q, isFavorite: !q.isFavorite } : q
-          ),
-        }));
-      },
-
-      // Tabs
-      createTab: () => {
-        const id = generateTabId();
-        const tabNumber = get().tabs.length + 1;
-        set((state) => ({
-          tabs: [
-            ...state.tabs,
-            { id, name: `Query ${tabNumber}`, query: '', isSaved: false },
-          ],
-          activeTabId: id,
-        }));
-      },
-
-      closeTab: (id) => {
-        const state = get();
-        if (state.tabs.length <= 1) return;
-        
-        const tabIndex = state.tabs.findIndex((t) => t.id === id);
-        const newTabs = state.tabs.filter((t) => t.id !== id);
-        
-        let newActiveId = state.activeTabId;
-        if (state.activeTabId === id) {
-          newActiveId = newTabs[Math.min(tabIndex, newTabs.length - 1)].id;
-        }
-        
-        set({ tabs: newTabs, activeTabId: newActiveId });
-      },
-
-      setActiveTab: (id) => set({ activeTabId: id }),
-
-      updateTabQuery: (id, query) => {
-        set((state) => ({
-          tabs: state.tabs.map((tab) =>
-            tab.id === id ? { ...tab, query, isSaved: false } : tab
-          ),
-        }));
-      },
-
-      // History
-      addToHistory: (query, status, executionTime) => {
-        const item: QueryHistoryItem = {
-          id: `history-${Date.now()}`,
-          sql: query,
-          query,
-          status,
-          executionTime,
-          timestamp: new Date().toISOString(),
-        };
-        set((state) => ({
-          queryHistory: [item, ...state.queryHistory].slice(0, 100),
-        }));
-      },
-
-      clearHistory: () => set({ queryHistory: [] }),
-
-      // Connection
-      checkConnection: async () => {
-        set({ connectionStatus: 'checking' });
-        try {
-          const response = await fetch('/api/admin/db/tables');
-          const data = await response.json();
-          set({ connectionStatus: data.success ? 'connected' : 'disconnected' });
-        } catch {
-          set({ connectionStatus: 'disconnected' });
-        }
-      },
-
-      // Metrics
-      fetchMetrics: async () => {
-        try {
-          const response = await fetch('/api/admin/db/metrics');
-          const data = await response.json();
-          if (data.success) {
-            set({ metrics: data.metrics });
-          }
-        } catch (error) {
-          console.error('Failed to fetch metrics:', error);
-        }
-      },
-
-      // Reset
-      reset: () => set(initialState),
-    }),
-    {
-      name: 'database-manager-storage',
-      partialize: (state) => ({
-        savedQueries: state.savedQueries,
-        queryHistory: state.queryHistory,
+          executeQuery: async (query, tabId) => {
+            const startTime = performance.now();
+            
+            // Mark tab as executing
+            if (tabId) {
+              set((state) => ({
+                tabs: state.tabs.map(t =>
+                  t.id === tabId ? { ...t, isExecuting: true } : t
+                ),
+                isExecuting: true,
+              }));
+            }
+            
+            try {
+              const response = await fetch('/api/admin/db/query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query }),
+              });
+              const result = await response.json();
+              
+              const executionTime = performance.now() - startTime;
+              
+              const queryResult: QueryResult = {
+                data: result.data || [],
+                columns: result.columns || [],
+                rowCount: result.rowCount || 0,
+                executionTime,
+                affectedRows: result.affectedRows,
+                error: result.error,
+              };
+              
+              // Update tab with result
+              if (tabId) {
+                set((state) => ({
+                  tabs: state.tabs.map(t =>
+                    t.id === tabId ? { ...t, result: queryResult, isExecuting: false } : t
+                  ),
+                  isExecuting: false,
+                }));
+              }
+              
+              // Add to history
+              const historyItem: QueryHistoryItem = {
+                id: `history-${Date.now()}`,
+                query,
+                executionTime,
+                rowCount: queryResult.rowCount,
+                status: result.success ? 'success' : 'error',
+                errorMessage: result.error,
+                timestamp: new Date(),
+              };
+              
+              set((state) => ({
+                queryHistory: [historyItem, ...state.queryHistory].slice(0, 100),
+              }));
+              
+              return queryResult;
+            } catch (error) {
+              const executionTime = performance.now() - startTime;
+              const queryResult: QueryResult = {
+                data: [],
+                columns: [],
+                rowCount: 0,
+                executionTime,
+                error: String(error),
+              };
+              
+              if (tabId) {
+                set((state) => ({
+                  tabs: state.tabs.map(t =>
+                    t.id === tabId ? { ...t, result: queryResult, isExecuting: false } : t
+                  ),
+                  isExecuting: false,
+                }));
+              }
+              
+              return queryResult;
+            }
+          },
+          
+          // Query Management
+          fetchSavedQueries: async () => {
+            try {
+              const response = await fetch('/api/admin/db/saved-queries');
+              const result = await response.json();
+              if (result.success) {
+                set({ savedQueries: result.queries });
+              }
+            } catch (error) {
+              console.error('Failed to fetch saved queries:', error);
+            }
+          },
+          
+          saveQuery: async (name, query, description, tags) => {
+            try {
+              const response = await fetch('/api/admin/db/saved-queries', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, query, description, tags }),
+              });
+              const result = await response.json();
+              if (result.success) {
+                get().actions.fetchSavedQueries();
+              }
+            } catch (error) {
+              console.error('Failed to save query:', error);
+            }
+          },
+          
+          deleteSavedQuery: async (id) => {
+            try {
+              await fetch(`/api/admin/db/saved-queries/${id}`, { method: 'DELETE' });
+              set((state) => ({
+                savedQueries: state.savedQueries.filter(q => q.id !== id),
+              }));
+            } catch (error) {
+              console.error('Failed to delete saved query:', error);
+            }
+          },
+          
+          toggleFavorite: async (id) => {
+            try {
+              await fetch(`/api/admin/db/saved-queries/${id}/favorite`, { method: 'POST' });
+              set((state) => ({
+                savedQueries: state.savedQueries.map(q =>
+                  q.id === id ? { ...q, isFavorite: !q.isFavorite } : q
+                ),
+              }));
+            } catch (error) {
+              console.error('Failed to toggle favorite:', error);
+            }
+          },
+          
+          clearHistory: () => {
+            set({ queryHistory: [] });
+          },
+          
+          // Backup
+          fetchBackups: async () => {
+            set({ isLoadingBackups: true });
+            try {
+              const response = await fetch('/api/admin/db/backup');
+              const result = await response.json();
+              if (result.success) {
+                set({ backups: result.backups });
+              }
+            } catch (error) {
+              console.error('Failed to fetch backups:', error);
+            } finally {
+              set({ isLoadingBackups: false });
+            }
+          },
+          
+          createBackup: async (name, type = 'full') => {
+            try {
+              const response = await fetch('/api/admin/db/backup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, type }),
+              });
+              const result = await response.json();
+              if (result.success) {
+                get().actions.fetchBackups();
+              }
+              return result;
+            } catch (error) {
+              console.error('Failed to create backup:', error);
+              throw error;
+            }
+          },
+          
+          deleteBackup: async (id) => {
+            try {
+              await fetch(`/api/admin/db/backup/${id}`, { method: 'DELETE' });
+              set((state) => ({
+                backups: state.backups.filter(b => b.id !== id),
+              }));
+            } catch (error) {
+              console.error('Failed to delete backup:', error);
+            }
+          },
+          
+          restoreBackup: async (id) => {
+            try {
+              const response = await fetch(`/api/admin/db/backup/${id}/restore`, {
+                method: 'POST',
+              });
+              const result = await response.json();
+              return result;
+            } catch (error) {
+              console.error('Failed to restore backup:', error);
+              throw error;
+            }
+          },
+          
+          // Audit Logs
+          fetchAuditLogs: async (limit = 100, offset = 0) => {
+            set({ isLoadingAuditLogs: true });
+            try {
+              const response = await fetch(`/api/admin/db/audit-logs?limit=${limit}&offset=${offset}`);
+              const result = await response.json();
+              if (result.success) {
+                set({ auditLogs: result.logs });
+              }
+            } catch (error) {
+              console.error('Failed to fetch audit logs:', error);
+            } finally {
+              set({ isLoadingAuditLogs: false });
+            }
+          },
+          
+          // Metrics
+          fetchMetrics: async () => {
+            try {
+              const response = await fetch('/api/admin/db/metrics');
+              const result = await response.json();
+              if (result.success && result.data) {
+                const db = result.data.database || {};
+                set({ 
+                  metrics: {
+                    totalTables: db.tables || 0,
+                    totalRows: db.totalRecords || 0,
+                    totalSize: db.size || 0,
+                    queryCount: result.data.auditLogs?.total || 0,
+                    avgQueryTime: result.data.auditLogs?.avgPerDay || 0,
+                  }
+                });
+              }
+            } catch (error) {
+              console.error('Failed to fetch metrics:', error);
+            }
+          },
+          
+          // Utility
+          checkConnection: async () => {
+            set({ connectionStatus: 'checking' });
+            try {
+              const response = await fetch('/api/admin/db/health');
+              const result = await response.json();
+              set({ connectionStatus: result.success ? 'connected' : 'disconnected' });
+              return result.success;
+            } catch (error) {
+              set({ connectionStatus: 'disconnected' });
+              return false;
+            }
+          },
+        },
       }),
-    }
+      {
+        name: 'database-store',
+        partialize: (state) => ({
+          tabs: state.tabs,
+          queryHistory: state.queryHistory.slice(0, 50),
+        }),
+      }
+    ),
+    { name: 'DatabaseStore' }
   )
 );
