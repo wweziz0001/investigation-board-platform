@@ -49,20 +49,18 @@ import { useDatabaseStore } from '@/stores/database-store';
 export default function DatabaseManagerPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { 
-    checkConnection, 
-    fetchTables, 
-    fetchMetrics, 
     tables, 
     connectionStatus, 
     isLoadingTables, 
-    metrics 
+    metrics,
+    actions 
   } = useDatabaseStore();
 
   useEffect(() => {
-    checkConnection();
-    fetchTables();
-    fetchMetrics();
-  }, [checkConnection, fetchTables, fetchMetrics]);
+    actions.checkConnection();
+    actions.fetchTables();
+    actions.fetchMetrics();
+  }, [actions]);
 
   return (
     <div className="h-full flex flex-col">
@@ -97,9 +95,9 @@ export default function DatabaseManagerPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                checkConnection();
-                fetchTables();
-                fetchMetrics();
+                actions.checkConnection();
+                actions.fetchTables();
+                actions.fetchMetrics();
               }}
             >
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
