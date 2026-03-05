@@ -6,6 +6,25 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.0.1] - 2025-03-05
+
+### 🔧 الإصلاحات
+
+#### إصلاح دالة getAuthUser المفقودة
+
+**المشكلة:**
+جميع API routes كانت تفشل بخطأ 500 بسبب عدم وجود دالة `getAuthUser` في ملف `src/lib/auth.ts`.
+
+**السبب:**
+دالة `getAuthUser` كانت مستخدمة في جميع API routes لكنها لم تكن مُصدّرة من ملف auth.ts.
+
+**الملفات المتأثرة:**
+- `src/lib/auth.ts` - إضافة دالة getAuthUser
+
+**التفاصيل:** انظر `changelog/v1.0.1.md`
+
+---
+
 ## [1.0.0] - 2025-03-05
 
 ### ✨ الإصدار الأولي | Initial Release
