@@ -19,6 +19,8 @@ import {
   ReactFlowProvider,
   BackgroundVariant,
   MarkerType,
+  ConnectionLineType,
+  SelectionMode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
@@ -146,8 +148,8 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
     error,
   } = useProjectStore();
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [showMinimap, setShowMinimap] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
   const [snapToGrid, setSnapToGrid] = useState(true);
@@ -406,18 +408,18 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
         defaultViewport={viewport}
         snapToGrid={snapToGrid}
         snapGrid={[20, 20]}
-        connectionLineType="smoothstep"
+        connectionLineType={ConnectionLineType.SmoothStep}
         deleteKeyCode="Delete"
         multiSelectionKeyCode="Shift"
         selectionOnDrag
         panOnDrag={[1, 2]}
-        selectionMode={1}
+        selectionMode={SelectionMode.Partial}
         proOptions={{ hideAttribution: true }}
       >
         {showGrid && <Background variant={BackgroundVariant.Dots} gap={20} size={1} />}
         {showMinimap && (
           <MiniMap
-            nodeColor={(node) => node.data?.color || '#6b7280'}
+            nodeColor={(node) => (node.data as { color?: string })?.color || '#6b7280'}
             maskColor="rgba(0,0,0,0.8)"
             style={{ background: 'var(--background)' }}
           />

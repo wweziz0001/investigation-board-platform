@@ -123,7 +123,7 @@ export function BoardToolbar({ onAddEvent }: BoardToolbarProps) {
       eventType: 'ALL',
       status: 'ALL',
       searchQuery: '',
-      dateRange: { from: null, to: null },
+      dateRange: {},
     });
   }, [setFilterState]);
 

@@ -1,6 +1,31 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// Event Types
+export type EventType = 
+  | 'GENERAL'
+  | 'INCIDENT'
+  | 'EVIDENCE'
+  | 'SUSPECT'
+  | 'WITNESS'
+  | 'LOCATION'
+  | 'TIMELINE'
+  | 'DOCUMENT'
+  | 'COMMUNICATION'
+  | 'FINANCIAL'
+  | 'TRAVEL'
+  | 'MEETING'
+  | 'CUSTOM';
+
+// Event Status
+export type EventStatus = 
+  | 'NEW'
+  | 'INVESTIGATING'
+  | 'VERIFIED'
+  | 'DISPUTED'
+  | 'DISMISSED'
+  | 'ARCHIVED';
+
 // Types
 export interface EventNode {
   id: string;
@@ -85,6 +110,26 @@ export interface ProjectState {
     dateRange: { start?: string; end?: string };
     tags: string[];
   };
+  boardSettings: {
+    showGrid: boolean;
+    snapToGrid: boolean;
+    gridSize: number;
+    showMinimap: boolean;
+    showControls: boolean;
+    showLabels: boolean;
+    theme: 'light' | 'dark';
+  };
+  filterState: {
+    eventType: EventType | 'ALL';
+    status: EventStatus | 'ALL';
+    searchQuery: string;
+    dateRange: { from?: string; to?: string };
+    showUnverified: boolean;
+    showVerified: boolean;
+    showDisputed: boolean;
+    minConfidence: number;
+    minImportance: number;
+  };
   isLoading: boolean;
   isSaving: boolean;
   error: string | null;
@@ -95,6 +140,10 @@ export interface ProjectActions {
   // Project
   setProject: (project: ProjectState['project']) => void;
   loadProject: (projectId: string) => Promise<void>;
+  
+  // Board Settings
+  setBoardSettings: (settings: Partial<ProjectState['boardSettings']>) => void;
+  setFilterState: (filterState: Partial<ProjectState['filterState']>) => void;
   
   // Events
   setEvents: (events: EventNode[]) => void;
@@ -154,6 +203,26 @@ const initialState: ProjectState = {
     dateRange: {},
     tags: [],
   },
+  boardSettings: {
+    showGrid: true,
+    snapToGrid: false,
+    gridSize: 20,
+    showMinimap: true,
+    showControls: true,
+    showLabels: true,
+    theme: 'light',
+  },
+  filterState: {
+    eventType: 'ALL',
+    status: 'ALL',
+    searchQuery: '',
+    dateRange: {},
+    showUnverified: true,
+    showVerified: true,
+    showDisputed: true,
+    minConfidence: 0,
+    minImportance: 0,
+  },
   isLoading: false,
   isSaving: false,
   error: null,
@@ -167,6 +236,14 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
 
       // Project
       setProject: (project) => set({ project }),
+      
+      setBoardSettings: (settings) => set((state) => ({
+        boardSettings: { ...state.boardSettings, ...settings },
+      })),
+      
+      setFilterState: (filterState) => set((state) => ({
+        filterState: { ...state.filterState, ...filterState },
+      })),
       
       loadProject: async (projectId) => {
         set({ isLoading: true, error: null, projectId });

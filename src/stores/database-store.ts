@@ -4,9 +4,11 @@ import { persist } from 'zustand/middleware';
 // Types
 export interface TableInfo {
   name: string;
+  sqliteName: string;
   type: string;
   rowCount: number;
-  sizeBytes?: number;
+  sizeBytes: number;
+  sizeFormatted: string;
   columns?: ColumnInfo[];
 }
 
@@ -21,12 +23,14 @@ export interface ColumnInfo {
 export interface QueryResult {
   success: boolean;
   data: Record<string, unknown>[];
+  rows: Record<string, unknown>[];
   columns: { name: string; type: string }[];
   rowCount: number;
   executionTime: number;
   affectedRows?: number;
   warning?: string;
   error?: string;
+  truncated?: boolean;
 }
 
 export interface SavedQuery {
@@ -43,6 +47,7 @@ export interface SavedQuery {
 
 export interface QueryHistoryItem {
   id: string;
+  sql: string;
   query: string;
   status: 'success' | 'error';
   executionTime: number;
@@ -74,6 +79,10 @@ export interface DatabaseState {
   connectionStatus: 'connected' | 'disconnected' | 'checking';
   isLoadingTables: boolean;
   isExecuting: boolean;
+  isExecutingQuery: boolean;
+  currentQuery: string;
+  queryResult: QueryResult | null;
+  actions: string[];
   metrics: DatabaseMetrics;
 }
 
@@ -87,6 +96,7 @@ export interface DatabaseActions {
   saveQuery: (name: string, query: string, description?: string) => Promise<void>;
   deleteSavedQuery: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
+  setCurrentQuery: (query: string) => void;
   
   // Tabs
   createTab: () => void;
@@ -119,6 +129,10 @@ const initialState: DatabaseState = {
   connectionStatus: 'checking',
   isLoadingTables: false,
   isExecuting: false,
+  isExecutingQuery: false,
+  currentQuery: '',
+  queryResult: null,
+  actions: [],
   metrics: {
     totalTables: 0,
     totalRows: 0,
@@ -150,8 +164,10 @@ export const useDatabaseStore = create<DatabaseState & DatabaseActions>()(
       },
 
       // Queries
+      setCurrentQuery: (query) => set({ currentQuery: query }),
+
       executeQuery: async (query, tabId) => {
-        set({ isExecuting: true });
+        set({ isExecuting: true, isExecutingQuery: true });
         const startTime = Date.now();
         
         try {
@@ -180,10 +196,10 @@ export const useDatabaseStore = create<DatabaseState & DatabaseActions>()(
             }));
           }
           
-          set({ isExecuting: false });
+          set({ isExecuting: false, isExecutingQuery: false, queryResult: result });
           return result;
         } catch (error) {
-          set({ isExecuting: false });
+          set({ isExecuting: false, isExecutingQuery: false });
           return {
             success: false,
             data: [],
@@ -289,6 +305,7 @@ export const useDatabaseStore = create<DatabaseState & DatabaseActions>()(
       addToHistory: (query, status, executionTime) => {
         const item: QueryHistoryItem = {
           id: `history-${Date.now()}`,
+          sql: query,
           query,
           status,
           executionTime,

@@ -74,7 +74,7 @@ interface EventNodeData {
 }
 
 function EventNodeComponent({ data, selected }: NodeProps) {
-  const nodeData = data as EventNodeData;
+  const nodeData = data as unknown as EventNodeData;
   const [isHovered, setIsHovered] = useState(false);
   
   const typeConfig = EVENT_TYPE_CONFIG[nodeData.eventType] || EVENT_TYPE_CONFIG.GENERAL;
