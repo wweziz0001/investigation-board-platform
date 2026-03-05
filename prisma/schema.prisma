@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Investigation Board Platform - Database Schema
+// Professional intelligence investigation and evidence management system
 
 generator client {
   provider = "prisma-client-js"
@@ -10,23 +7,471 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:../db/investigation.db"
 }
+
+// ==================== User Management ====================
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  passwordHash  String
+  firstName     String?
+  lastName      String?
+  avatar        String?
+  role          UserRole  @default(INVESTIGATOR)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  projects          ProjectMember[]
+  ownedProjects     Project[]        @relation("ProjectOwner")
+  createdEvents     Event[]
+  createdEvidence   Evidence[]
+  createdNotes      Note[]
+  createdRelations  Relationship[]
+  auditLogs         AuditLog[]
+  savedQueries      SavedQuery[]
+
+  @@index([email])
+  @@index([username])
+  @@index([role])
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
+enum UserRole {
+  ADMIN       // Full system access
+  INVESTIGATOR // Can create/edit projects and events
+  VIEWER      // Read-only access
+}
+
+// ==================== Project Management ====================
+
+model Project {
+  id            String        @id @default(uuid())
+  name          String
+  description   String?
+  status        ProjectStatus @default(ACTIVE)
+  priority      ProjectPriority @default(MEDIUM)
+  startDate     DateTime?
+  endDate       DateTime?
+  boardViewport String?       // JSON: { x, y, zoom }
+  boardSettings String?       // JSON: { gridSize, snapToGrid, showMinimap }
+  isArchived    Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  createdById   String
+  createdBy     User          @relation("ProjectOwner", fields: [createdById], references: [id])
+
+  // Relations
+  members       ProjectMember[]
+  events        Event[]
+  relationships Relationship[]
+  evidence      Evidence[]
+  notes         Note[]
+  tags          Tag[]
+  clusters      Cluster[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([isArchived])
+}
+
+enum ProjectStatus {
+  PLANNING     // Initial planning phase
+  ACTIVE       // Active investigation
+  PAUSED       // Temporarily paused
+  COMPLETED    // Investigation completed
+  ARCHIVED     // Archived for reference
+}
+
+enum ProjectPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model ProjectMember {
+  id        String        @id @default(uuid())
+  projectId String
+  userId    String
+  role      MemberRole    @default(MEMBER)
+  joinedAt  DateTime      @default(now())
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+enum MemberRole {
+  OWNER     // Full control including deletion
+  ADMIN     // Can manage members and settings
+  MEMBER    // Can add/edit events and evidence
+  VIEWER    // Read-only access
+}
+
+// ==================== Events (Nodes on Board) ====================
+
+model Event {
+  id              String        @id @default(uuid())
+  projectId       String
+  title           String
+  description     String?
+  eventDate       DateTime?
+  eventTime       String?
+  location        String?
+  locationCoords  String?       // JSON: { lat, lng }
+  eventType       EventType     @default(GENERAL)
+  status          EventStatus   @default(NEW)
+  confidence      Int           @default(50)   // 0-100 confidence level
+  importance      Int           @default(50)   // 0-100 importance level
+  verified        Boolean       @default(false)
+
+  // Board Position
+  positionX       Float         @default(0)
+  positionY       Float         @default(0)
+  width           Int           @default(280)
+  height          Int           @default(200)
+  zIndex          Int           @default(0)
+  isExpanded      Boolean       @default(true)
+  isLocked        Boolean       @default(false)
+  color           String?       // Hex color for node
+
+  // Metadata
+  externalId      String?       // External reference ID
+  source          String?       // Source of information
+  reliability     Int           @default(50)   // 0-100 source reliability
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  createdById     String
+  createdBy       User          @relation(fields: [createdById], references: [id])
+
+  // Relations
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  evidence        Evidence[]
+  notes           Note[]
+  tags            EventTag[]
+  cluster         Cluster?      @relation(fields: [clusterId], references: [id])
+  clusterId       String?
+
+  // Outgoing relationships
+  sourceRelations  Relationship[] @relation("EventSource")
+  // Incoming relationships
+  targetRelations  Relationship[] @relation("EventTarget")
+
+  @@index([projectId])
+  @@index([eventType])
+  @@index([status])
+  @@index([eventDate])
+  @@index([clusterId])
+}
+
+enum EventType {
+  GENERAL       // General event
+  INCIDENT      // Incident/crime event
+  EVIDENCE      // Evidence discovery
+  SUSPECT       // Suspect information
+  WITNESS       // Witness statement
+  LOCATION      // Location of interest
+  TIMELINE      // Timeline marker
+  DOCUMENT      // Document reference
+  COMMUNICATION // Communication record
+  FINANCIAL     // Financial transaction
+  TRAVEL        // Travel/movement
+  MEETING       // Meeting/encounter
+  CUSTOM        // Custom event type
+}
+
+enum EventStatus {
+  NEW           // Newly created
+  INVESTIGATING // Under investigation
+  VERIFIED      // Verified and confirmed
+  DISPUTED      // Information disputed
+  DISMISSED     // No longer relevant
+  ARCHIVED      // Archived
+}
+
+// ==================== Relationships (Edges on Board) ====================
+
+model Relationship {
+  id              String            @id @default(uuid())
+  projectId       String
+  sourceEventId   String
+  targetEventId   String
+  relationType    RelationType      @default(RELATED)
+  label           String?
+  description     String?
+  strength        Int               @default(50)  // 0-100 relationship strength
+  confidence      Int               @default(50)  // 0-100 confidence in relationship
+  color           String?
+
+  // Visual properties
+  lineStyle       LineStyle         @default(SOLID)
+  lineWidth       Int               @default(2)
+  isAnimated      Boolean           @default(false)
+  isCurved        Boolean           @default(true)
+
+  // Metadata
+  evidence        String?           // Evidence supporting this relationship
+  source          String?           // Source of relationship info
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  createdById     String
+  createdBy       User              @relation(fields: [createdById], references: [id])
+
+  // Relations
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceEvent     Event             @relation("EventSource", fields: [sourceEventId], references: [id], onDelete: Cascade)
+  targetEvent     Event             @relation("EventTarget", fields: [targetEventId], references: [id], onDelete: Cascade)
+  notes           Note[]
+
+  @@index([projectId])
+  @@index([sourceEventId])
+  @@index([targetEventId])
+  @@index([relationType])
+}
+
+enum RelationType {
+  RELATED       // General relation
+  EVIDENCE      // Evidence connection
+  TIMELINE      // Temporal sequence
+  CAUSAL        // Causal relationship
+  SUSPECT       // Suspect involvement
+  WITNESS       // Witness connection
+  LOCATION      // Location connection
+  COMMUNICATION // Communication link
+  FINANCIAL     // Financial connection
+  FAMILY        // Family relationship
+  ASSOCIATE     // Known associate
+  VEHICLE       // Vehicle connection
+  ORGANIZATION  // Organization link
+  CUSTOM        // Custom relationship
+}
+
+enum LineStyle {
+  SOLID
+  DASHED
+  DOTTED
+}
+
+// ==================== Evidence & Files ====================
+
+model Evidence {
+  id              String          @id @default(uuid())
+  projectId       String
+  eventId         String?
+  title           String
+  description     String?
+  evidenceType    EvidenceType    @default(DOCUMENT)
+  fileName        String?
+  filePath        String?
+  fileSize        Int?
+  mimeType        String?
+  hash            String?         // File hash for integrity
+
+  // External links
+  externalUrl     String?
+  externalSource  String?
+
+  // Metadata
+  collectedDate   DateTime?
+  collectedBy     String?
+  chainOfCustody  String?         // JSON array of custody records
+  isVerified      Boolean         @default(false)
+  isConfidential  Boolean         @default(false)
+  accessLevel     Int             @default(0)  // 0=public, 1=members, 2=admin, 3=owner
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  createdById     String
+  createdBy       User            @relation(fields: [createdById], references: [id])
+
+  // Relations
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  event           Event?          @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  notes           Note[]
+
+  @@index([projectId])
+  @@index([eventId])
+  @@index([evidenceType])
+}
+
+enum EvidenceType {
+  DOCUMENT      // PDF, DOC, etc.
+  IMAGE         // Photos, screenshots
+  VIDEO         // Video recordings
+  AUDIO         // Audio recordings
+  EMAIL         // Email correspondence
+  MESSAGE       // Chat/SMS messages
+  FINANCIAL     // Financial records
+  LOCATION      // GPS/Location data
+  PHYSICAL      // Physical evidence photos
+  WEB           // Web page/archive
+  DATABASE      // Database export
+  OTHER         // Other evidence type
+}
+
+// ==================== Notes ====================
+
+model Note {
+  id            String      @id @default(uuid())
+  projectId     String
+  eventId       String?
+  relationshipId String?
+  evidenceId    String?
+  content       String      // Markdown content
+  noteType      NoteType    @default(GENERAL)
+  isPinned      Boolean     @default(false)
+  isPrivate     Boolean     @default(false)
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  createdById   String
+  createdBy     User        @relation(fields: [createdById], references: [id])
+
+  // Relations
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  event         Event?      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  relationship  Relationship? @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  evidence      Evidence?   @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([eventId])
+  @@index([createdById])
+}
+
+enum NoteType {
+  GENERAL       // General note
+  HYPOTHESIS    // Investigation hypothesis
+  QUESTION      // Question to investigate
+  TODO          // Task/todo item
+  FINDING       // Key finding
+  SUMMARY       // Summary note
+  ANALYSIS      // Analysis notes
+}
+
+// ==================== Tags ====================
+
+model Tag {
+  id          String      @id @default(uuid())
+  projectId   String
+  name        String
+  color       String      @default("#6366f1")
+  description String?
+
+  // Relations
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  events      EventTag[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+model EventTag {
+  eventId String
+  tagId   String
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, tagId])
+}
+
+// ==================== Clusters (Grouping Events) ====================
+
+model Cluster {
+  id          String    @id @default(uuid())
+  projectId   String
+  name        String
+  description String?
+  color       String    @default("#3b82f6")
+  positionX   Float     @default(0)
+  positionY   Float     @default(0)
+  width       Int       @default(400)
+  height      Int       @default(300)
+  isCollapsed Boolean   @default(false)
+
+  // Relations
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  events      Event[]
+
+  @@index([projectId])
+}
+
+// ==================== Audit & Activity Logs ====================
+
+model AuditLog {
+  id            String      @id @default(uuid())
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action        String
+  resourceType  String
+  resourceId    String?
+  resourceName  String?
+  details       String?     // JSON details
+  ipAddress     String?
+  userAgent     String?
+  status        String      @default("success")
+  createdAt     DateTime    @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([resourceType])
+  @@index([createdAt])
+}
+
+// ==================== Saved Queries (DB Manager) ====================
+
+model SavedQuery {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  query       String
+  isFavorite  Boolean   @default(false)
+  tags        String?   // JSON array of tags
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastUsedAt  DateTime?
+
+  @@index([userId])
+  @@index([isFavorite])
+}
+
+// ==================== System Settings ====================
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String   // JSON value
+  category  String
+  description String?
   updatedAt DateTime @updatedAt
+
+  @@index([key])
+  @@index([category])
+}
+
+// ==================== Database Backups ====================
+
+model DatabaseBackup {
+  id          String    @id @default(uuid())
+  name        String
+  type        String    @default("full")  // full, schema, data
+  size        Int
+  status      String    @default("pending")  // pending, completed, failed
+  filePath    String?
+  checksum    String?
+  createdAt   DateTime  @default(now())
+  createdBy   String?
+
+  @@index([status])
+  @@index([createdAt])
 }

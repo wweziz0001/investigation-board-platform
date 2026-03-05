@@ -1,141 +1,183 @@
-# 🚀 Welcome to Z.ai Code Scaffold
+# Investigation Board Platform
 
-A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
+A professional, collaborative investigation platform for intelligence analysts, detectives, and law enforcement to create, manage, and visualize investigation projects with infinite canvas boards.
 
-## ✨ Technology Stack
+![Investigation Board](https://via.placeholder.com/1200x600/1e293b/ffffff?text=Investigation+Board+Platform)
 
-This scaffold provides a robust foundation built with:
+## 🚀 Features
 
-### 🎯 Core Framework
-- **⚡ Next.js 16** - The React framework for production with App Router
-- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
-- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
+### Core Functionality
+- **Investigation Projects** - Create and manage multiple investigation projects with isolated workspaces
+- **Infinite Canvas Board** - Zoomable, pannable canvas supporting thousands of events
+- **Event Nodes** - Rich event nodes with metadata, tagging, and evidence linking
+- **Relationship System** - Connect events with typed relationships (evidence, timeline, causal, etc.)
+- **Evidence Management** - Upload and manage files, documents, and evidence
+- **User Management** - Role-based access control (Admin, Investigator, Viewer)
 
-### 🧩 UI Components & Styling
-- **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
-- **🎯 Lucide React** - Beautiful & consistent icon library
-- **🌈 Framer Motion** - Production-ready motion library for React
-- **🎨 Next Themes** - Perfect dark mode in 2 lines of code
+### Investigation Board
+- **React Flow Powered** - Built on @xyflow/react for performance
+- **Custom Nodes & Edges** - Purpose-built event and relationship components
+- **Search & Filter** - Find events by type, status, date, or content
+- **Export/Import** - JSON export for backup and sharing
+- **Real-time Updates** - Automatic position saving
 
-### 📋 Forms & Validation
-- **🎣 React Hook Form** - Performant forms with easy validation
-- **✅ Zod** - TypeScript-first schema validation
+### Admin Dashboard
+- **User Management** - Create, edit, delete users with role assignment
+- **Project Oversight** - View and manage all projects
+- **Database Manager** - SQL editor, table browser, backup system
+- **Code Editor** - Monaco-powered file editor for system files
 
-### 🔄 State Management & Data Fetching
-- **🐻 Zustand** - Simple, scalable state management
-- **🔄 TanStack Query** - Powerful data synchronization for React
-- **🌐 Fetch** - Promise-based HTTP request
+## 📋 Tech Stack
 
-### 🗄️ Database & Backend
-- **🗄️ Prisma** - Next-generation TypeScript ORM
-- **🔐 NextAuth.js** - Complete open-source authentication solution
+| Category | Technology |
+|----------|------------|
+| **Frontend** | Next.js 16, React 19, TypeScript |
+| **Styling** | Tailwind CSS 4, shadcn/ui |
+| **State** | Zustand, TanStack Query |
+| **Board** | @xyflow/react (React Flow v12) |
+| **Editor** | Monaco Editor |
+| **Database** | Prisma ORM, SQLite |
+| **Auth** | JWT, bcryptjs |
+| **Icons** | Lucide React |
 
-### 🎨 Advanced UI Features
-- **📊 TanStack Table** - Headless UI for building tables and datagrids
-- **🖱️ DND Kit** - Modern drag and drop toolkit for React
-- **📊 Recharts** - Redefined chart library built with React and D3
-- **🖼️ Sharp** - High performance image processing
+## 🏃 Getting Started
 
-### 🌍 Internationalization & Utilities
-- **🌍 Next Intl** - Internationalization library for Next.js
-- **📅 Date-fns** - Modern JavaScript date utility library
-- **🪝 ReactUse** - Collection of essential React hooks for modern development
+### Prerequisites
+- Node.js 18+ or Bun
+- SQLite (included)
 
-## 🎯 Why This Scaffold?
-
-- **🏎️ Fast Development** - Pre-configured tooling and best practices
-- **🎨 Beautiful UI** - Complete shadcn/ui component library with advanced interactions
-- **🔒 Type Safety** - Full TypeScript configuration with Zod validation
-- **📱 Responsive** - Mobile-first design principles with smooth animations
-- **🗄️ Database Ready** - Prisma ORM configured for rapid backend development
-- **🔐 Auth Included** - NextAuth.js for secure authentication flows
-- **📊 Data Visualization** - Charts, tables, and drag-and-drop functionality
-- **🌍 i18n Ready** - Multi-language support with Next Intl
-- **🚀 Production Ready** - Optimized build and deployment settings
-- **🤖 AI-Friendly** - Structured codebase perfect for AI assistance
-
-## 🚀 Quick Start
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/your-org/investigation-board.git
+
 # Install dependencies
 bun install
 
+# Setup database
+bun run db:push
+
 # Start development server
 bun run dev
-
-# Build for production
-bun run build
-
-# Start production server
-bun start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your application running.
+### Default Admin Account
 
-## 🤖 Powered by Z.ai
-
-This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
-
-- **💻 Code Generation** - Generate components, pages, and features instantly
-- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
-- **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
-- **📝 Documentation** - Auto-generate comprehensive documentation
-- **🚀 Optimization** - Performance improvements and best practices
-
-Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
+After running `db:push`, create an admin user through the registration page, then manually update their role to `ADMIN` in the database.
 
 ## 📁 Project Structure
 
 ```
-src/
-├── app/                 # Next.js App Router pages
-├── components/          # Reusable React components
-│   └── ui/             # shadcn/ui components
-├── hooks/              # Custom React hooks
-└── lib/                # Utility functions and configurations
+investigation-board/
+├── prisma/
+│   └── schema.prisma        # Database schema
+├── src/
+│   ├── app/                  # Next.js App Router
+│   │   ├── admin/           # Admin dashboard pages
+│   │   ├── api/             # API routes
+│   │   ├── login/           # Login page
+│   │   ├── projects/        # Project workspace
+│   │   └── register/        # Registration page
+│   ├── components/
+│   │   ├── admin/           # Admin components
+│   │   ├── board/           # Investigation board components
+│   │   └── ui/              # shadcn/ui components
+│   ├── hooks/               # Custom React hooks
+│   ├── lib/                 # Utility libraries
+│   └── stores/              # Zustand stores
+├── db/                      # SQLite database files
+└── public/                  # Static assets
 ```
 
-## 🎨 Available Features & Components
+## 🔐 User Roles
 
-This scaffold includes a comprehensive set of modern web development tools:
+| Role | Permissions |
+|------|-------------|
+| **Admin** | Full system access, user management, database management |
+| **Investigator** | Create/edit projects, events, relationships, evidence |
+| **Viewer** | View-only access to assigned projects |
 
-### 🧩 UI Components (shadcn/ui)
-- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
-- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
-- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
-- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
-- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
-- **Data Display**: Badge, Avatar, Calendar
+## 📊 Database Schema
 
-### 📊 Advanced Data Features
-- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
-- **Charts**: Beautiful visualizations with Recharts
-- **Forms**: Type-safe forms with React Hook Form + Zod validation
+See [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) for complete schema documentation.
 
-### 🎨 Interactive Features
-- **Animations**: Smooth micro-interactions with Framer Motion
-- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
-- **Theme Switching**: Built-in dark/light mode support
+### Core Models
+- **User** - Authentication and authorization
+- **Project** - Investigation project container
+- **Event** - Node on the investigation board
+- **Relationship** - Connection between events
+- **Evidence** - Files and attachments
+- **Note** - Text notes on events/projects
 
-### 🔐 Backend Integration
-- **Authentication**: Ready-to-use auth flows with NextAuth.js
-- **Database**: Type-safe database operations with Prisma
-- **API Client**: HTTP requests with Fetch + TanStack Query
-- **State Management**: Simple and scalable with Zustand
+## 🔌 API Endpoints
 
-### 🌍 Production Features
-- **Internationalization**: Multi-language support with Next Intl
-- **Image Optimization**: Automatic image processing with Sharp
-- **Type Safety**: End-to-end TypeScript with Zod validation
-- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login
+- `POST /api/auth/logout` - Logout
+- `GET /api/auth/me` - Get current user
 
-## 🤝 Get Started with Z.ai
+### Projects
+- `GET /api/projects` - List projects
+- `POST /api/projects` - Create project
+- `GET /api/projects/[id]` - Get project details
+- `PUT /api/projects/[id]` - Update project
+- `DELETE /api/projects/[id]` - Delete project
 
-1. **Clone this scaffold** to jumpstart your project
-2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
-3. **Start building** with intelligent code generation and assistance
-4. **Deploy with confidence** using the production-ready setup
+### Events
+- `GET /api/events` - List events (filter by project)
+- `POST /api/events` - Create event
+- `GET /api/events/[id]` - Get event
+- `PUT /api/events/[id]` - Update event
+- `DELETE /api/events/[id]` - Delete event
 
----
+### Relationships
+- `GET /api/relationships` - List relationships
+- `POST /api/relationships` - Create relationship
+- `GET /api/relationships/[id]` - Get relationship
+- `PUT /api/relationships/[id]` - Update relationship
+- `DELETE /api/relationships/[id]` - Delete relationship
 
-Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
+### Admin
+- `GET /api/admin/db/tables` - List database tables
+- `POST /api/admin/db/query` - Execute SQL query
+- `GET /api/admin/db/metrics` - Database metrics
+- `GET /api/admin/db/backup` - List backups
+- `POST /api/admin/db/backup` - Create backup
+
+## 🎨 Customization
+
+### Event Types
+Edit `src/components/board/event-node.tsx` to customize event types:
+
+```typescript
+const EVENT_TYPE_CONFIG: Record<string, { icon: typeof Calendar; label: string; color: string }> = {
+  GENERAL: { icon: FileText, label: 'General', color: '#6b7280' },
+  INCIDENT: { icon: AlertCircle, label: 'Incident', color: '#ef4444' },
+  // Add custom types...
+};
+```
+
+### Relationship Types
+Edit `src/components/board/relationship-edge.tsx` to customize relationship types:
+
+```typescript
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  RELATED: 'Related',
+  EVIDENCE: 'Evidence',
+  // Add custom types...
+};
+```
+
+## 📝 License
+
+MIT License - See LICENSE file for details.
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution guidelines.
+
+## 📧 Support
+
+For support, email support@investigation-board.com or open an issue.
