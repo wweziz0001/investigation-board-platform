@@ -1,0 +1,122 @@
+# investigation-board-platform - Project Rules
+
+## ⚠️ CRITICAL: READ THIS FIRST
+
+This file is AUTOMATICALLY loaded at the start of EVERY conversation.
+You MUST follow these rules WITHOUT being reminded.
+
+---
+
+## 🔄 MANDATORY WORKFLOW FOR EVERY CODE CHANGE
+
+### AFTER EVERY CODE CHANGE, YOU MUST:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  POST-CHANGE CHECKLIST                       │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. □ Update VERSION file (semantic versioning)            │
+│  2. □ Create changelog/vX.X.X.md with details              │
+│  3. □ Update changelog/CHANGELOG.md with summary           │
+│  4. □ Create git branch named vX.X.X                       │
+│  5. □ Commit with message: "Release vX.X.X: description"   │
+│  6. □ Push to GitHub: git push origin vX.X.X               │
+│                                                             │
+│  ⚠️ DO NOT SKIP ANY STEP!                                   │
+│  ⚠️ DO NOT WAIT FOR USER REMINDER!                          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📋 Version Numbering (Semantic Versioning)
+
+| Change Type | Version Change | Example |
+|-------------|----------------|---------|
+| Bug fix | PATCH | 1.2.5 → 1.2.6 |
+| New feature | MINOR | 1.2.6 → 1.3.0 |
+| Breaking change | MAJOR | 1.3.0 → 2.0.0 |
+
+---
+
+## 🎨 Symbols for Changelog
+
+| Symbol | Meaning |
+|--------|---------|
+| 🔧 | Bug fix |
+| ✨ | New feature |
+| 🎨 | Design improvement |
+| ⚡ | Performance improvement |
+| 📝 | Documentation |
+| 🟢 | New code added |
+| 🔴 | Code removed |
+
+---
+
+## 🚀 Git Commands (COPY-PASTE READY)
+
+```bash
+# After making code changes:
+
+# 1. Read current version
+cat VERSION
+
+# 2. Update VERSION (example: patch fix)
+echo "1.7.2" > VERSION
+
+# 3. Create branch
+git checkout -b v1.7.2
+
+# 4. Stage changes
+git add .
+
+# 5. Commit
+git commit -m "Release v1.7.2: وصف التغيير"
+
+# 6. Push
+git push origin v1.7.2
+```
+
+---
+
+## 📁 Files to Read at Session Start
+
+When starting a new session or continuing, ALWAYS read:
+
+1. `VERSION` - Current version number
+2. `changelog/CHANGELOG.md` - Recent changes (last 50 lines)
+3. Last `changelog/v*.md` file - Latest release details
+
+---
+
+## ⛔ NEVER DO THESE
+
+- ❌ Commit directly to main branch
+- ❌ Skip changelog documentation
+- ❌ Forget to update VERSION
+- ❌ Forget to push to GitHub
+- ❌ Wait for user reminder
+
+---
+
+## 📞 Project Info
+
+- **Repository**: https://github.com/wweziz0001/investigation-board-platform
+- **Author**: wweziz0001
+
+---
+
+## 🔔 SELF-REMINDER
+
+After completing ANY code change, ask yourself:
+
+> "Did I update VERSION? Did I create changelog? Did I push to GitHub?"
+
+If ANY answer is "No", COMPLETE THE MISSING STEPS IMMEDIATELY!
+
+---
+
+**Last Updated**: 2025-03-06
+**Version**: 1.0.0

@@ -2,7 +2,7 @@
 
 ## 📋 نظرة عامة | Overview
 
-هذا الدليل يشرح منهجية التوثيق وإدارة الإصدارات في مشروع **منصة لوحة التحقيق** (Investigation Board Platform). عند العمل على هذا المشروع، يجب اتباع هذه التعليمات بدقة لضمان الاتساق والجودة.
+هذا الدليل يشرح منهجية التوثيق وإدارة الإصدارات في مشروع investigation-board-platform  . عند العمل على هذا المشروع، يجب اتباع هذه التعليمات بدقة لضمان الاتساق والجودة.
 
 ---
 
@@ -13,14 +13,14 @@
 نستخدم نظام **Semantic Versioning** (الإصدارات الدلالية):
 
 ```
-MAJOR.MINOR.PATCH (مثال: 1.0.0)
+MAJOR.MINOR.PATCH (مثال: 1.2.6)
 ```
 
 | النوع | الرمز | متى يُستخدم | مثال |
 |-------|-------|------------|-------|
 | **MAJOR** | `X.0.0` | تغييرات جذرية أو إعادة بناء كاملة | 1.0.0 → 2.0.0 |
-| **MINOR** | `1.X.0` | إضافة ميزات جديدة | 1.0.0 → 1.1.0 |
-| **PATCH** | `1.0.X` | إصلاح أخطاء ومشاكل | 1.0.0 → 1.0.1 |
+| **MINOR** | `1.X.0` | إضافة ميزات جديدة | 1.2.0 → 1.3.0 |
+| **PATCH** | `1.1.X` | إصلاح أخطاء ومشاكل | 1.2.5 → 1.2.6 |
 
 ### الرموز المستخدمة | Symbols Used
 
@@ -39,15 +39,12 @@ MAJOR.MINOR.PATCH (مثال: 1.0.0)
 ## 📁 هيكل ملفات التوثيق | Documentation Files Structure
 
 ```
-investigation-board-platform/
+project/
 ├── VERSION                    # الإصدار الحالي (رقم واحد فقط)
 ├── changelog/
 │   ├── CHANGELOG.md          # سجل كل الإصدارات
-│   └── v1.0.0.md             # تفاصيل الإصدار المحدد
-├── AI_INSTRUCTIONS.md         # تعليمات للنماذج الذكية
-├── DEVELOPMENT_GUIDE.md       # هذا الملف
-├── README.md                  # وصف المشروع
-└── DATABASE_SCHEMA.md         # مخطط قاعدة البيانات
+│   └── v1.2.6.md             # تفاصيل الإصدار المحدد
+└── DEVELOPMENT_GUIDE.md       # هذا الملف
 ```
 
 ---
@@ -59,18 +56,18 @@ investigation-board-platform/
 ```bash
 # 1. قراءة الإصدار الحالي
 cat VERSION
-# مثال: 1.0.0
+# مثال: 1.2.5
 
-# 2. تحديث VERSION إلى 1.0.1
-echo "1.0.1" > VERSION
+# 2. تحديث VERSION إلى 1.2.6
+echo "1.2.6" > VERSION
 
 # 3. إنشاء ملف التغييرات التفصيلية
-# إنشاء changelog/v1.0.1.md
+# إنشاء changelog/v1.2.6.md
 ```
 
 **محتوى ملف changelog/vX.X.X.md:**
 ```markdown
-# [X.X.X] - YYYY-MM-DD
+# [1.2.6] - YYYY-MM-DD
 
 ## 🔧 الإصلاحات
 
@@ -89,6 +86,12 @@ echo "1.0.1" > VERSION
 - `path/to/file1.ts` - وصف التغيير
 - `path/to/file2.tsx` - وصف التغيير
 
+**التفاصيل:**
+```diff
+- الكود القديم
++ الكود الجديد
+```
+
 **النتيجة:**
 - ✅ نتائج الإصلاح
 ```
@@ -96,16 +99,16 @@ echo "1.0.1" > VERSION
 ### عند إضافة ميزة (Minor) | When Adding a Feature
 
 ```bash
-# 1. تحديث VERSION من 1.0.0 إلى 1.1.0
-echo "1.1.0" > VERSION
+# 1. تحديث VERSION من 1.2.6 إلى 1.3.0
+echo "1.3.0" > VERSION
 
-# 2. إنشاء changelog/v1.1.0.md
+# 2. إنشاء changelog/v1.3.0.md
 ```
 
 ### عند تغيير جذري (Major) | When Major Change
 
 ```bash
-# 1. تحديث VERSION من 1.0.0 إلى 2.0.0
+# 1. تحديث VERSION من 1.3.0 إلى 2.0.0
 echo "2.0.0" > VERSION
 
 # 2. إنشاء changelog/v2.0.0.md مع توثيق شامل
@@ -124,23 +127,49 @@ echo "2.0.0" > VERSION
 git status
 
 # 2. إنشاء فرع جديد باسم الإصدار
-git checkout -b vX.X.X
+git checkout -b v1.2.6
 
 # 3. إضافة جميع الملفات
 git add .
 
 # 4. إنشاء commit مع رسالة واضحة
-git commit -m "Release vX.X.X: وصف مختصر"
+git commit -m "Release v1.2.6: إصلاح عدم عمل واجهة مدير قواعد البيانات"
 
 # 5. رفع الفرع إلى GitHub
-git push origin vX.X.X
+git push origin v1.2.6
 ```
 
 ### إذا كان التوكن مطلوباً | If Token is Required
 
 ```bash
 # استخدام التوكن في الرابط
-git push https://<TOKEN>@github.com/wweziz0001/investigation-board-platform.git vX.X.X
+git push https://<TOKEN>@github.com/wweziz0001/investigation-board-platform.git v1.2.6
+```
+
+---
+
+## 📝 تحديث CHANGELOG.md | Update Main Changelog
+
+بعد إنشاء ملف الإصدار، يجب تحديث الملف الرئيسي:
+
+```markdown
+## [1.2.6] - 2026-02-28
+
+### 🔧 الإصلاحات
+
+#### إصلاح عدم عمل واجهة مدير قواعد البيانات (DB Manager)
+
+**المشكلة:**
+جميع تبويبات واجهة مدير قواعد البيانات لم تكن تعمل...
+
+**الملفات المتأثرة:**
+- `.env` (جديد)
+- `src/app/api/admin/db/tables/route.ts`
+- ...
+
+**التفاصيل:** انظر `changelog/v1.2.6.md`
+
+---
 ```
 
 ---
@@ -164,57 +193,7 @@ git push https://<TOKEN>@github.com/wweziz0001/investigation-board-platform.git 
 
 ---
 
-## 🔧 التقنيات المستخدمة | Technologies Used
-
-| الفئة | التقنية | الإصدار |
-|-------|---------|---------|
-| **Framework** | Next.js | 16 |
-| **UI Library** | React | 19 |
-| **Language** | TypeScript | 5 |
-| **Styling** | Tailwind CSS | 4 |
-| **Components** | shadcn/ui | New York |
-| **State Management** | Zustand | 5 |
-| **Board Engine** | @xyflow/react | 12 |
-| **Database ORM** | Prisma | 6 |
-| **Database** | SQLite | 3 |
-| **Authentication** | JWT | - |
-| **Password Hashing** | bcryptjs | - |
-| **Icons** | Lucide React | - |
-
----
-
-## 📂 هيكل المشروع | Project Structure
-
-```
-investigation-board-platform/
-├── prisma/
-│   └── schema.prisma          # مخطط قاعدة البيانات
-├── src/
-│   ├── app/
-│   │   ├── admin/             # لوحة الإدارة
-│   │   ├── api/               # واجهات API
-│   │   ├── login/             # تسجيل الدخول
-│   │   ├── projects/          # صفحات المشاريع
-│   │   └── register/          # التسجيل
-│   ├── components/
-│   │   ├── admin/             # مكونات الإدارة
-│   │   ├── board/             # مكونات اللوحة
-│   │   └── ui/                # مكونات shadcn
-│   ├── hooks/                 # React Hooks
-│   ├── lib/                   # المكتبات المساعدة
-│   └── stores/                # مخازن Zustand
-├── changelog/                 # سجلات التغييرات
-├── scripts/                   # سكربتات المساعدة
-├── VERSION                    # رقم الإصدار
-├── README.md                  # توثيق المشروع
-├── DATABASE_SCHEMA.md         # مخطط قاعدة البيانات
-├── AI_INSTRUCTIONS.md         # تعليمات الذكاء الاصطناعي
-└── DEVELOPMENT_GUIDE.md       # هذا الملف
-```
-
----
-
-## 🔍 Checklist قبل الإنهاء | Pre-completion Checklist
+## 🔍 التحقق من جودة التوثيق | Documentation Quality Check
 
 قبل إكمال أي إصدار، تأكد من:
 
@@ -224,7 +203,6 @@ investigation-board-platform/
 - [ ] تم إنشاء فرع جديد
 - [ ] تم عمل commit مع رسالة واضحة
 - [ ] تم رفع الفرع إلى GitHub
-- [ ] تم التحقق من عمل جميع الصفحات (/, /admin, /login)
 
 ---
 
@@ -232,32 +210,74 @@ investigation-board-platform/
 
 ### ⚠️ قاعدة مهمة جداً
 
-**لا يُعتبر تشغيل الـ dev server كتشغيل ناجح للنظام!**
+**لا يُعتبر تشغيل الـ service (dev server) كتشغيل ناجح للنظام!**
 
-مجرد ظهور رسالة `✓ Ready in XXXms` **لا يعني** أن النظام يعمل بشكل صحيح.
+مجرد ظهور رسالة `✓ Ready in XXXms` أو `Local: http://localhost:3000` **لا يعني** أن النظام يعمل بشكل صحيح.
 
 ### 🎯 المتطلبات الإلزامية للتحقق
 
+يجب التحقق من القدرة على الوصول إلى **جميع الواجهات الرئيسية الثلاث**:
+
 ```bash
-# التحقق من جميع الواجهات الرئيسية
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ && echo " - Homepage"
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/admin && echo " - Admin"
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/login && echo " - Login"
+# التحقق من الصفحة الرئيسية
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/
+# المتوقع: 200
+
+# التحقق من لوحة الإدارة
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/admin
+# المتوقع: 200
+
+# التحقق من صفحة القرآن
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/quran
+# المتوقع: 200
+```
+
+### ✅ Checklist التحقق من التشغيل
+
+قبل اعتبار أي تغيير "مكتمل"، يجب التحقق من:
+
+- [ ] `/` - الصفحة الرئيسية ترجع **200 OK**
+- [ ] `/admin` - لوحة الإدارة ترجع **200 OK**
+- [ ] `/quran` - صفحة القرآن ترجع **200 OK**
+
+### ❌ أمثلة على حالات خاطئة
+
+| الحالة | الوصف | النتيجة |
+|--------|-------|---------|
+| ❌ خاطئ | dev server يعمل ولكن `/admin` يعطي 500 | **النظام لا يعمل** |
+| ❌ خاطئ | dev server يعمل ولكن `/quran` يعطي خطأ | **النظام لا يعمل** |
+| ❌ خاطئ | الصفحة الرئيسية تعمل فقط | **النظام لا يعمل** |
+| ✅ صحيح | جميع الواجهات الثلاث ترجع 200 | **النظام يعمل** |
+
+### 🔧 كيفية التحقق السريع
+
+```bash
+# أمر واحد للتحقق من جميع الواجهات
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ && echo " - Homepage" && \
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/admin && echo " - Admin" && \
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/quran && echo " - Quran"
 
 # النتيجة المتوقعة:
 # 200 - Homepage
 # 200 - Admin
-# 200 - Login
+# 200 - Quran
 ```
 
----
+### 🛠️ سكربت التحقق الشامل
 
-## 📞 معلومات المستودع | Repository Info
+يوجد سكربت تحقق شامل يمكن استخدامه للتحقق الكامل:
 
-- **GitHub**: https://github.com/wweziz0001/investigation-board-platform
-- **المؤلف**: wweziz0001
-- **تاريخ آخر تحديث**: 2025-03-05
-- **الإصدار الحالي**: 1.0.0
+```bash
+bash /home/z/my-project/verify-system.sh
+```
+
+هذا السكربت يتحقق من:
+- ✅ حالة خادم Next.js
+- ✅ حالة Gateway (Caddy)
+- ✅ جميع الواجهات الثلاث (/, /admin, /quran)
+- ✅ المحتوى يظهر بشكل صحيح
+- ✅ الأخطاء في السجل
+- ✅ JavaScript Chunks
 
 ---
 
@@ -266,11 +286,33 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/login && echo " - L
 عند العمل على هذا المشروع، أنت مطالب بـ:
 
 1. **قراءة هذا الملف أولاً**: لفهم منهجية العمل
-2. **قراءة `AI_INSTRUCTIONS.md`**: لفهم التعليمات التفصيلية
-3. **قراءة آخر إصدار في `changelog/`**: لمعرفة آخر التغييرات
-4. **قراءة `VERSION`**: لمعرفة الإصدار الحالي
-5. **اتباع الخطوات المذكورة أعلاه**: بدقة عند أي تغيير
+2. **قراءة آخر إصدار في `changelog/`**: لمعرفة آخر التغييرات
+3. **قراءة `VERSION`**: لمعرفة الإصدار الحالي
+4. **اتباع الخطوات المذكورة أعلاه**: بدقة عند أي تغيير
+
+### تنسيق الرسائل | Message Format
+
+```
+Release vX.X.X: [وصف مختصر]
+
+- إصلاح/إضافة: [تفاصيل]
+- إصلاح/إضافة: [تفاصيل]
+```
 
 ---
 
-**تذكر**: التوثيق الجيد هو أساس أي مشروع ناجح!
+## 📂 الملفات المهمة للمشروع | Important Project Files
+
+| الملف | الوصف |
+|-------|-------|
+| `VERSION` | رقم الإصدار الحالي |
+| `changelog/CHANGELOG.md` | سجل جميع الإصدارات |
+| `changelog/vX.X.X.md` | تفاصيل كل إصدار |
+| `DEVELOPMENT_GUIDE.md` | هذا الدليل |
+| `README.md` | وصف المشروع |
+| `.env` | متغيرات البيئة (غير مدرج في Git) |
+
+---
+
+**تاريخ آخر تحديث**: 2025-03-01
+**الإصدار الحالي**: 1.3.2
