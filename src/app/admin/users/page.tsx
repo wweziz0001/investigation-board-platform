@@ -85,7 +85,9 @@ export default function UsersManagementPage() {
       const response = await fetch('/api/users?limit=1000');
       const data = await response.json();
       if (data.success) {
-        setUsers(data.users || []);
+        setUsers(data.data || []);
+      } else {
+        toast.error(data.error || 'Failed to fetch users');
       }
     } catch (error) {
       toast.error('Failed to fetch users');
