@@ -1,17 +1,59 @@
-// Investigation Board Platform - Database Schema
-// Professional intelligence investigation and evidence management system
+# Database Schema | مخطط قاعدة البيانات
 
-generator client {
-  provider = "prisma-client-js"
-}
+## Overview | نظرة عامة
 
-datasource db {
-  provider = "sqlite"
-  url      = "file:../db/investigation.db"
-}
+The Intelligence Investigation Platform uses Prisma ORM with SQLite (development) or PostgreSQL (production). This document describes all database models, their relationships, and important considerations.
 
-// ==================== User Management ====================
+---
 
+## Entity Relationship Diagram | مخطط العلاقات
+
+```
+┌─────────────┐       ┌─────────────────┐       ┌─────────────┐
+│    User     │       │     Project     │       │    Event    │
+├─────────────┤       ├─────────────────┤       ├─────────────┤
+│ id          │──┐    │ id              │──┐    │ id          │
+│ email       │  │    │ name            │  │    │ title       │
+│ username    │  │    │ description     │  │    │ eventType   │
+│ passwordHash│  │    │ status          │  │    │ status      │
+│ role        │  │    │ priority        │  │    │ positionX   │
+│ ...         │  │    │ ...             │  │    │ positionY   │
+└─────────────┘  │    └─────────────────┘  │    │ ...         │
+       │         │           │             │    └─────────────┘
+       │         │           │             │           │
+       │    ┌────┘           │             │           │
+       │    │                │             │           │
+       ▼    ▼                ▼             │           │
+┌─────────────────┐  ┌─────────────────┐   │           │
+│  ProjectMember  │  │   Evidence      │   │           │
+├─────────────────┤  ├─────────────────┤   │           │
+│ id              │  │ id              │   │           │
+│ projectId       │  │ projectId       │   │           │
+│ userId          │  │ eventId         │◄──┼───────────┘
+│ role            │  │ title           │   │
+└─────────────────┘  │ evidenceType    │   │
+                     │ ...             │   │
+                     └─────────────────┘   │
+                                           │
+┌─────────────────┐                        │
+│  Relationship   │                        │
+├─────────────────┤                        │
+│ id              │                        │
+│ projectId       │                        │
+│ sourceEventId   │◄───────────────────────┘
+│ targetEventId   │◄───────────────────────┘
+│ relationType    │
+│ ...             │
+└─────────────────┘
+```
+
+---
+
+## Models | النماذج
+
+### User | المستخدم
+
+```prisma
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
@@ -33,23 +75,38 @@ model User {
   createdEvidence   Evidence[]
   createdNotes      Note[]
   createdRelations  Relationship[]
-  comments          Comment[]
   auditLogs         AuditLog[]
   savedQueries      SavedQuery[]
+  comments          Comment[]
 
   @@index([email])
   @@index([username])
   @@index([role])
 }
+```
 
+**Indexes:**
+- `email` - For login lookups
+- `username` - For profile lookups
+- `role` - For role-based queries
+
+---
+
+### UserRole | دور المستخدم
+
+```prisma
 enum UserRole {
-  ADMIN       // Full system access
+  ADMIN        // Full system access
   INVESTIGATOR // Can create/edit projects and events
-  VIEWER      // Read-only access
+  VIEWER       // Read-only access
 }
+```
 
-// ==================== Project Management ====================
+---
 
+### Project | المشروع
+
+```prisma
 model Project {
   id            String        @id @default(uuid())
   name          String
@@ -59,12 +116,12 @@ model Project {
   startDate     DateTime?
   endDate       DateTime?
   boardViewport String?       // JSON: { x, y, zoom }
-  boardSettings String?       // JSON: { gridSize, snapToGrid, showMinimap }
+  boardSettings String?       // JSON: { gridSize, snapToGrid }
   isArchived    Boolean       @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   createdById   String
-  createdBy     User          @relation("ProjectOwner", fields: [createdById], references: [id])
+  createdBy     User          @relation("ProjectOwner")
 
   // Relations
   members       ProjectMember[]
@@ -80,7 +137,13 @@ model Project {
   @@index([createdById])
   @@index([isArchived])
 }
+```
 
+---
+
+### ProjectStatus | حالة المشروع
+
+```prisma
 enum ProjectStatus {
   PLANNING     // Initial planning phase
   ACTIVE       // Active investigation
@@ -88,14 +151,26 @@ enum ProjectStatus {
   COMPLETED    // Investigation completed
   ARCHIVED     // Archived for reference
 }
+```
 
+---
+
+### ProjectPriority | أولوية المشروع
+
+```prisma
 enum ProjectPriority {
   LOW
   MEDIUM
   HIGH
   CRITICAL
 }
+```
 
+---
+
+### ProjectMember | عضو المشروع
+
+```prisma
 model ProjectMember {
   id        String        @id @default(uuid())
   projectId String
@@ -109,16 +184,26 @@ model ProjectMember {
   @@index([projectId])
   @@index([userId])
 }
+```
 
+---
+
+### MemberRole | دور العضو
+
+```prisma
 enum MemberRole {
   OWNER     // Full control including deletion
   ADMIN     // Can manage members and settings
   MEMBER    // Can add/edit events and evidence
   VIEWER    // Read-only access
 }
+```
 
-// ==================== Events (Nodes on Board) ====================
+---
 
+### Event | الحدث (العقدة على اللوحة)
+
+```prisma
 model Event {
   id              String        @id @default(uuid())
   projectId       String
@@ -130,8 +215,8 @@ model Event {
   locationCoords  String?       // JSON: { lat, lng }
   eventType       EventType     @default(GENERAL)
   status          EventStatus   @default(NEW)
-  confidence      Int           @default(50)   // 0-100 confidence level
-  importance      Int           @default(50)   // 0-100 importance level
+  confidence      Int           @default(50)   // 0-100
+  importance      Int           @default(50)   // 0-100
   verified        Boolean       @default(false)
 
   // Board Position
@@ -142,12 +227,12 @@ model Event {
   zIndex          Int           @default(0)
   isExpanded      Boolean       @default(true)
   isLocked        Boolean       @default(false)
-  color           String?       // Hex color for node
+  color           String?
 
   // Metadata
-  externalId      String?       // External reference ID
-  source          String?       // Source of information
-  reliability     Int           @default(50)   // 0-100 source reliability
+  externalId      String?
+  source          String?
+  reliability     Int           @default(50)
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -161,12 +246,9 @@ model Event {
   tags            EventTag[]
   cluster         Cluster?      @relation(fields: [clusterId], references: [id])
   clusterId       String?
-
-  // Outgoing relationships
   sourceRelations  Relationship[] @relation("EventSource")
-  // Incoming relationships
   targetRelations  Relationship[] @relation("EventTarget")
-  comments         Comment[]
+  comments        Comment[]
 
   @@index([projectId])
   @@index([eventType])
@@ -174,7 +256,13 @@ model Event {
   @@index([eventDate])
   @@index([clusterId])
 }
+```
 
+---
+
+### EventType | نوع الحدث
+
+```prisma
 enum EventType {
   GENERAL       // General event
   INCIDENT      // Incident/crime event
@@ -190,7 +278,13 @@ enum EventType {
   MEETING       // Meeting/encounter
   CUSTOM        // Custom event type
 }
+```
 
+---
+
+### EventStatus | حالة الحدث
+
+```prisma
 enum EventStatus {
   NEW           // Newly created
   INVESTIGATING // Under investigation
@@ -199,9 +293,13 @@ enum EventStatus {
   DISMISSED     // No longer relevant
   ARCHIVED      // Archived
 }
+```
 
-// ==================== Relationships (Edges on Board) ====================
+---
 
+### Relationship | العلاقة (الحافة على اللوحة)
+
+```prisma
 model Relationship {
   id              String            @id @default(uuid())
   projectId       String
@@ -210,8 +308,8 @@ model Relationship {
   relationType    RelationType      @default(RELATED)
   label           String?
   description     String?
-  strength        Int               @default(50)  // 0-100 relationship strength
-  confidence      Int               @default(50)  // 0-100 confidence in relationship
+  strength        Int               @default(50)  // 0-100
+  confidence      Int               @default(50)  // 0-100
   color           String?
 
   // Visual properties
@@ -221,8 +319,8 @@ model Relationship {
   isCurved        Boolean           @default(true)
 
   // Metadata
-  evidence        String?           // Evidence supporting this relationship
-  source          String?           // Source of relationship info
+  evidence        String?
+  source          String?
 
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -241,7 +339,13 @@ model Relationship {
   @@index([targetEventId])
   @@index([relationType])
 }
+```
 
+---
+
+### RelationType | نوع العلاقة
+
+```prisma
 enum RelationType {
   RELATED       // General relation
   EVIDENCE      // Evidence connection
@@ -258,15 +362,25 @@ enum RelationType {
   ORGANIZATION  // Organization link
   CUSTOM        // Custom relationship
 }
+```
 
+---
+
+### LineStyle | نمط الخط
+
+```prisma
 enum LineStyle {
   SOLID
   DASHED
   DOTTED
 }
+```
 
-// ==================== Evidence & Files ====================
+---
 
+### Evidence | الدليل
+
+```prisma
 model Evidence {
   id              String          @id @default(uuid())
   projectId       String
@@ -278,7 +392,7 @@ model Evidence {
   filePath        String?
   fileSize        Int?
   mimeType        String?
-  hash            String?         // File hash for integrity
+  hash            String?
 
   // External links
   externalUrl     String?
@@ -287,10 +401,10 @@ model Evidence {
   // Metadata
   collectedDate   DateTime?
   collectedBy     String?
-  chainOfCustody  String?         // JSON array of custody records
+  chainOfCustody  String?         // JSON array
   isVerified      Boolean         @default(false)
   isConfidential  Boolean         @default(false)
-  accessLevel     Int             @default(0)  // 0=public, 1=members, 2=admin, 3=owner
+  accessLevel     Int             @default(0)
 
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -306,7 +420,13 @@ model Evidence {
   @@index([eventId])
   @@index([evidenceType])
 }
+```
 
+---
+
+### EvidenceType | نوع الدليل
+
+```prisma
 enum EvidenceType {
   DOCUMENT      // PDF, DOC, etc.
   IMAGE         // Photos, screenshots
@@ -321,74 +441,73 @@ enum EvidenceType {
   DATABASE      // Database export
   OTHER         // Other evidence type
 }
+```
 
-// ==================== Notes ====================
+---
 
+### Comment | التعليق
+
+```prisma
+model Comment {
+  id            String    @id @default(uuid())
+  projectId     String
+  eventId       String?
+  relationshipId String?
+  userId        String
+  content       String
+  parentId      String?   // For threaded comments
+  position      String?   // JSON: { x, y } for annotations
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  event         Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  relationship  Relationship? @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies       Comment[] @relation("CommentReplies")
+  parent        Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+
+  @@index([projectId])
+  @@index([eventId])
+  @@index([userId])
+}
+```
+
+---
+
+## Supporting Models | النماذج المساعدة
+
+### Note | الملاحظة
+```prisma
 model Note {
   id            String      @id @default(uuid())
   projectId     String
   eventId       String?
   relationshipId String?
   evidenceId    String?
-  content       String      // Markdown content
+  content       String      // Markdown
   noteType      NoteType    @default(GENERAL)
   isPinned      Boolean     @default(false)
   isPrivate     Boolean     @default(false)
-
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  createdById   String
-  createdBy     User        @relation(fields: [createdById], references: [id])
-
-  // Relations
-  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  event         Event?      @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  relationship  Relationship? @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
-  evidence      Evidence?   @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
-
-  @@index([projectId])
-  @@index([eventId])
-  @@index([createdById])
+  // ... relations
 }
+```
 
-enum NoteType {
-  GENERAL       // General note
-  HYPOTHESIS    // Investigation hypothesis
-  QUESTION      // Question to investigate
-  TODO          // Task/todo item
-  FINDING       // Key finding
-  SUMMARY       // Summary note
-  ANALYSIS      // Analysis notes
-}
-
-// ==================== Tags ====================
-
+### Tag | الوسم
+```prisma
 model Tag {
   id          String      @id @default(uuid())
   projectId   String
   name        String
   color       String      @default("#6366f1")
   description String?
-
-  // Relations
-  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  events      EventTag[]
-
-  @@unique([projectId, name])
-  @@index([projectId])
+  // ... relations
 }
+```
 
-model EventTag {
-  eventId String
-  tagId   String
-  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([eventId, tagId])
-}
-
-// ==================== Clusters (Grouping Events) ====================
-
+### Cluster | المجموعة
+```prisma
 model Cluster {
   id          String    @id @default(uuid())
   projectId   String
@@ -400,134 +519,58 @@ model Cluster {
   width       Int       @default(400)
   height      Int       @default(300)
   isCollapsed Boolean   @default(false)
-
-  // Relations
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  events      Event[]
-
-  @@index([projectId])
+  // ... relations
 }
+```
 
-// ==================== Audit & Activity Logs ====================
-
+### AuditLog | سجل التدقيق
+```prisma
 model AuditLog {
   id            String      @id @default(uuid())
   userId        String?
-  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   action        String
   resourceType  String
   resourceId    String?
   resourceName  String?
-  details       String?     // JSON details
-  query         String?     // SQL query if applicable
+  details       String?     // JSON
+  query         String?
   ipAddress     String?
   userAgent     String?
   status        String      @default("success")
   errorMessage  String?
   timestamp     DateTime    @default(now())
-  createdAt     DateTime    @default(now())
-
-  @@index([userId])
-  @@index([action])
-  @@index([resourceType])
-  @@index([createdAt])
-  @@index([timestamp])
+  // ... relations
 }
+```
 
-// ==================== Saved Queries (DB Manager) ====================
+---
 
-model SavedQuery {
-  id          String    @id @default(uuid())
-  userId      String?
-  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  name        String
-  description String?
-  query       String
-  isFavorite  Boolean   @default(false)
-  useCount    Int       @default(0)
-  tags        String?   // JSON array of tags
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  lastUsedAt  DateTime?
+## Migration Guide | دليل الترحيل
 
-  @@index([userId])
-  @@index([isFavorite])
-}
+### Development
+```bash
+# Push schema changes
+bun run db:push
 
-// ==================== System Settings ====================
+# Generate Prisma Client
+bunx prisma generate
+```
 
-model SystemSetting {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  value     String   // JSON value
-  category  String
-  description String?
-  updatedAt DateTime @updatedAt
+### Production (PostgreSQL)
+```bash
+# Create migration
+bunx prisma migrate dev --name init
 
-  @@index([key])
-  @@index([category])
-}
+# Deploy migration
+bunx prisma migrate deploy
+```
 
-// ==================== Database Backups ====================
+---
 
-model DatabaseBackup {
-  id          String    @id @default(uuid())
-  name        String
-  type        String    @default("full")  // full, schema, data
-  size        Int
-  status      String    @default("pending")  // pending, completed, failed
-  filePath    String?
-  checksum    String?
-  createdAt   DateTime  @default(now())
-  createdBy   String?
+## Best Practices | أفضل الممارسات
 
-  @@index([status])
-  @@index([createdAt])
-}
-
-// ==================== Backup Records (DB Manager) ====================
-
-model BackupRecord {
-  id            String    @id @default(uuid())
-  name          String
-  type          String    @default("full")  // full, schema-only, data-only
-  status        String    @default("pending")  // pending, in-progress, completed, failed
-  size          Int       @default(0)
-  location      String?
-  checksum      String?
-  duration      Int?      // Duration in milliseconds
-  errorMessage  String?
-  completedAt   DateTime?
-  createdAt     DateTime  @default(now())
-  createdBy     String?
-
-  @@index([status])
-  @@index([createdAt])
-}
-
-// ==================== Comments & Annotations ====================
-
-model Comment {
-  id             String    @id @default(uuid())
-  projectId      String
-  eventId        String?
-  relationshipId String?
-  userId         String
-  content        String
-  parentId       String?   // For threaded comments
-  position       String?   // JSON: { x, y } for annotations on board
-
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  event          Event?        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  relationship   Relationship? @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  replies        Comment[]     @relation("CommentReplies")
-  parent         Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-
-  @@index([projectId])
-  @@index([eventId])
-  @@index([userId])
-}
+1. **Always use transactions** for multi-step operations
+2. **Use indexes** for frequently queried fields
+3. **Cascade deletes** carefully to avoid data loss
+4. **Validate input** before database operations
+5. **Use Prisma's type safety** to catch errors at compile time

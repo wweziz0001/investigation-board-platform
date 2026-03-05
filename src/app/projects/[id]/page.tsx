@@ -1,15 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useProjectStore } from '@/stores/project-store';
 import { useAuthStore } from '@/stores/auth-store';
+import { useCollaboration } from '@/hooks/use-collaboration';
 import { InvestigationBoard } from '@/components/board/investigation-board';
+import { TimelineView } from '@/components/board/timeline-view';
+import { EvidencePanel } from '@/components/board/evidence-panel';
+import { EvidenceDialog } from '@/components/board/evidence-dialog';
+import { AIAnalysisPanel } from '@/components/board/ai-analysis-panel';
+import { CommentsPanel } from '@/components/board/comments-panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -39,9 +46,17 @@ import {
   Tag,
   Clock,
   Activity,
+  Brain,
+  MessageSquare,
+  Wifi,
+  WifiOff,
+  Sparkles,
+  PanelRightClose,
+  PanelRightOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import type { Event, Relationship } from '@/stores/project-store';
 
 // Project status colors
 const STATUS_COLORS: Record<string, string> = {
@@ -72,10 +87,35 @@ export default function ProjectPage() {
     loadProject,
     isLoading,
     selectedEventIds,
+    selectedRelationshipIds,
+    addRelationship,
   } = useProjectStore();
-  
+
+  // Collaboration hook
+  const {
+    isConnected,
+    onlineUsers,
+    joinProject,
+    leaveProject,
+    emitEventCreated,
+    emitEventUpdated,
+    emitEventDeleted,
+    emitRelationshipCreated,
+  } = useCollaboration();
+
   const [activeTab, setActiveTab] = useState('board');
   const [showSidePanel, setShowSidePanel] = useState(true);
+  const [showEvidenceDialog, setShowEvidenceDialog] = useState(false);
+  const [editingEvidence, setEditingEvidence] = useState<any>(null);
+  const [rightPanelTab, setRightPanelTab] = useState<'details' | 'comments' | 'ai'>('details');
+
+  // Join project room for collaboration
+  useEffect(() => {
+    if (projectId && isConnected !== null) {
+      joinProject(projectId);
+      return () => leaveProject(projectId);
+    }
+  }, [projectId, isConnected, joinProject, leaveProject]);
 
   // Load project data
   useEffect(() => {
@@ -89,13 +129,69 @@ export default function ProjectPage() {
     ? events.find(e => e.id === selectedEventIds[0])
     : null;
 
+  // Get selected relationship
+  const selectedRelationship = selectedRelationshipIds.length === 1
+    ? relationships.find(r => r.id === selectedRelationshipIds[0])
+    : null;
+
   // Project stats
   const stats = {
     totalEvents: events.length,
     totalConnections: relationships.length,
     verifiedEvents: events.filter(e => e.verified).length,
     lockedEvents: events.filter(e => e.isLocked).length,
+    onlineUsers: onlineUsers.length,
   };
+
+  // Handle accepting AI-suggested relationship
+  const handleAcceptRelationship = useCallback(async (rel: {
+    sourceId: string;
+    targetId: string;
+    relationType: string;
+    label: string;
+    confidence: number;
+  }) => {
+    try {
+      const response = await fetch('/api/relationships', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          sourceEventId: rel.sourceId,
+          targetEventId: rel.targetId,
+          relationType: rel.relationType,
+          label: rel.label,
+          confidence: rel.confidence,
+        }),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        addRelationship(data.data);
+        emitRelationshipCreated(data.data);
+        toast.success('Relationship created');
+      } else {
+        toast.error(data.error || 'Failed to create relationship');
+      }
+    } catch (error) {
+      toast.error('Failed to create relationship');
+    }
+  }, [projectId, addRelationship, emitRelationshipCreated]);
+
+  // Handle event click from timeline
+  const handleEventClick = useCallback((eventId: string) => {
+    setActiveTab('board');
+    // The board will handle the selection
+  }, []);
+
+  // Events with dates for timeline
+  const eventsWithDates = events
+    .filter(e => e.eventDate)
+    .map(e => ({
+      ...e,
+      eventDate: new Date(e.eventDate!),
+    }))
+    .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
 
   if (isLoading && !project) {
     return (
@@ -140,6 +236,18 @@ export default function ProjectPage() {
                 >
                   {project.status}
                 </Badge>
+                {/* Connection status indicator */}
+                {isConnected ? (
+                  <Badge variant="outline" className="text-xs border-green-500 text-green-500">
+                    <Wifi className="h-3 w-3 mr-1" />
+                    {stats.onlineUsers} online
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs border-gray-500 text-gray-500">
+                    <WifiOff className="h-3 w-3 mr-1" />
+                    Offline
+                  </Badge>
+                )}
               </div>
               {project.description && (
                 <p className="text-sm text-muted-foreground truncate max-w-md">
@@ -161,6 +269,18 @@ export default function ProjectPage() {
                 <span>{stats.totalConnections} connections</span>
               </div>
             </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSidePanel(!showSidePanel)}
+            >
+              {showSidePanel ? (
+                <PanelRightClose className="h-4 w-4" />
+              ) : (
+                <PanelRightOpen className="h-4 w-4" />
+              )}
+            </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -200,14 +320,26 @@ export default function ProjectPage() {
       <div className="flex-1 min-h-0">
         <ResizablePanelGroup direction="horizontal">
           {/* Board / Content area */}
-          <ResizablePanel defaultSize={showSidePanel ? 75 : 100} minSize={50}>
+          <ResizablePanel defaultSize={showSidePanel ? 70 : 100} minSize={50}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
               <div className="border-b px-4">
                 <TabsList className="h-10">
-                  <TabsTrigger value="board" className="text-sm">Board</TabsTrigger>
-                  <TabsTrigger value="timeline" className="text-sm">Timeline</TabsTrigger>
-                  <TabsTrigger value="evidence" className="text-sm">Evidence</TabsTrigger>
-                  <TabsTrigger value="notes" className="text-sm">Notes</TabsTrigger>
+                  <TabsTrigger value="board" className="text-sm gap-1">
+                    <Activity className="h-3 w-3" />
+                    Board
+                  </TabsTrigger>
+                  <TabsTrigger value="timeline" className="text-sm gap-1">
+                    <Clock className="h-3 w-3" />
+                    Timeline
+                  </TabsTrigger>
+                  <TabsTrigger value="evidence" className="text-sm gap-1">
+                    <FileText className="h-3 w-3" />
+                    Evidence
+                  </TabsTrigger>
+                  <TabsTrigger value="ai" className="text-sm gap-1">
+                    <Brain className="h-3 w-3" />
+                    AI Analysis
+                  </TabsTrigger>
                 </TabsList>
               </div>
               
@@ -215,28 +347,34 @@ export default function ProjectPage() {
                 <InvestigationBoard projectId={projectId} />
               </TabsContent>
               
-              <TabsContent value="timeline" className="flex-1 m-0 overflow-auto p-4">
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Timeline View</h3>
-                  <p className="text-muted-foreground">Timeline visualization coming soon...</p>
-                  {/* TODO: Timeline view */}
-                </div>
+              <TabsContent value="timeline" className="flex-1 m-0">
+                <TimelineView
+                  events={eventsWithDates}
+                  onEventClick={handleEventClick}
+                  selectedEventIds={selectedEventIds}
+                />
               </TabsContent>
               
-              <TabsContent value="evidence" className="flex-1 m-0 overflow-auto p-4">
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Evidence</h3>
-                  <p className="text-muted-foreground">Evidence management coming soon...</p>
-                  {/* TODO: Evidence management */}
-                </div>
+              <TabsContent value="evidence" className="flex-1 m-0 overflow-hidden">
+                <EvidencePanel
+                  projectId={projectId}
+                  onAddEvidence={() => {
+                    setEditingEvidence(null);
+                    setShowEvidenceDialog(true);
+                  }}
+                  onEditEvidence={(evidence) => {
+                    setEditingEvidence(evidence);
+                    setShowEvidenceDialog(true);
+                  }}
+                />
               </TabsContent>
               
-              <TabsContent value="notes" className="flex-1 m-0 overflow-auto p-4">
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Notes</h3>
-                  <p className="text-muted-foreground">Notes management coming soon...</p>
-                  {/* TODO: Notes management */}
-                </div>
+              <TabsContent value="ai" className="flex-1 m-0 overflow-hidden">
+                <AIAnalysisPanel
+                  projectId={projectId}
+                  onAcceptRelationship={handleAcceptRelationship}
+                  onEventSelect={handleEventClick}
+                />
               </TabsContent>
             </Tabs>
           </ResizablePanel>
@@ -245,150 +383,225 @@ export default function ProjectPage() {
           {showSidePanel && (
             <>
               <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-                <ScrollArea className="h-full">
-                  <div className="p-4 space-y-4">
-                    {/* Selected Event Details */}
-                    {selectedEvent ? (
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base">{selectedEvent.title}</CardTitle>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline">{selectedEvent.eventType}</Badge>
-                            <Badge variant="secondary">{selectedEvent.status}</Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          {selectedEvent.description && (
-                            <p className="text-sm text-muted-foreground">
-                              {selectedEvent.description}
-                            </p>
-                          )}
-                          
-                          <div className="space-y-2 text-sm">
-                            {selectedEvent.eventDate && (
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                <span>{new Date(selectedEvent.eventDate).toLocaleDateString()}</span>
-                              </div>
-                            )}
-                            {selectedEvent.location && (
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-muted-foreground" />
-                                <span>{selectedEvent.location}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Confidence</span>
-                              <span>{selectedEvent.confidence}%</span>
-                            </div>
-                            <div className="h-2 bg-muted rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-primary transition-all"
-                                style={{ width: `${selectedEvent.confidence}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 pt-2">
-                            <Button size="sm" variant="outline" className="flex-1">
-                              <Edit className="h-3 w-3 mr-1" />
-                              Edit
-                            </Button>
-                            <Button size="sm" variant="outline" className="flex-1">
-                              <Link2 className="h-3 w-3 mr-1" />
-                              Connect
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base">Project Overview</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div className="bg-muted rounded-lg p-2 text-center">
-                              <div className="font-semibold">{stats.totalEvents}</div>
-                              <div className="text-xs text-muted-foreground">Events</div>
-                            </div>
-                            <div className="bg-muted rounded-lg p-2 text-center">
-                              <div className="font-semibold">{stats.totalConnections}</div>
-                              <div className="text-xs text-muted-foreground">Connections</div>
-                            </div>
-                            <div className="bg-muted rounded-lg p-2 text-center">
-                              <div className="font-semibold">{stats.verifiedEvents}</div>
-                              <div className="text-xs text-muted-foreground">Verified</div>
-                            </div>
-                            <div className="bg-muted rounded-lg p-2 text-center">
-                              <div className="font-semibold">{stats.lockedEvents}</div>
-                              <div className="text-xs text-muted-foreground">Locked</div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Event Types Summary */}
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">Event Types</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          {Object.entries(
-                            events.reduce((acc, e) => {
-                              acc[e.eventType] = (acc[e.eventType] || 0) + 1;
-                              return acc;
-                            }, {} as Record<string, number>)
-                          ).map(([type, count]) => (
-                            <div key={type} className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">{type}</span>
-                              <Badge variant="secondary">{count}</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Recent Activity */}
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">Recent Activity</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          {events.slice(0, 5).map((event) => (
-                            <div
-                              key={event.id}
-                              className="flex items-center gap-2 text-sm py-1 border-b last:border-0"
-                            >
-                              <div
-                                className="w-2 h-2 rounded-full"
-                                style={{
-                                  backgroundColor: event.color || '#6b7280'
-                                }}
-                              />
-                              <span className="truncate flex-1">{event.title}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(event.updatedAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
+              <ResizablePanel defaultSize={30} minSize={20} maxSize={40}>
+                <div className="h-full flex flex-col">
+                  {/* Side panel tabs */}
+                  <div className="border-b px-2">
+                    <Tabs value={rightPanelTab} onValueChange={(v) => setRightPanelTab(v as typeof rightPanelTab)}>
+                      <TabsList className="h-9 w-full justify-start">
+                        <TabsTrigger value="details" className="text-xs px-2">Details</TabsTrigger>
+                        <TabsTrigger value="comments" className="text-xs px-2 gap-1">
+                          <MessageSquare className="h-3 w-3" />
+                          Comments
+                        </TabsTrigger>
+                        <TabsTrigger value="ai" className="text-xs px-2 gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          AI
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
                   </div>
-                </ScrollArea>
+
+                  {/* Details tab content */}
+                  {rightPanelTab === 'details' && (
+                    <ScrollArea className="flex-1">
+                      <div className="p-4 space-y-4">
+                        {/* Selected Event Details */}
+                        {selectedEvent ? (
+                          <Card>
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base">{selectedEvent.title}</CardTitle>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="outline">{selectedEvent.eventType}</Badge>
+                                <Badge variant="secondary">{selectedEvent.status}</Badge>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              {selectedEvent.description && (
+                                <p className="text-sm text-muted-foreground">
+                                  {selectedEvent.description}
+                                </p>
+                              )}
+                              
+                              <div className="space-y-2 text-sm">
+                                {selectedEvent.eventDate && (
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                                    <span>{new Date(selectedEvent.eventDate).toLocaleDateString()}</span>
+                                  </div>
+                                )}
+                                {selectedEvent.location && (
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                                    <span>{selectedEvent.location}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                  <span>Confidence</span>
+                                  <span>{selectedEvent.confidence}%</span>
+                                </div>
+                                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-primary transition-all"
+                                    style={{ width: `${selectedEvent.confidence}%` }}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex gap-2 pt-2">
+                                <Button size="sm" variant="outline" className="flex-1">
+                                  <Edit className="h-3 w-3 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button size="sm" variant="outline" className="flex-1">
+                                  <Link2 className="h-3 w-3 mr-1" />
+                                  Connect
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ) : (
+                          <Card>
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base">Project Overview</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div className="bg-muted rounded-lg p-2 text-center">
+                                  <div className="font-semibold">{stats.totalEvents}</div>
+                                  <div className="text-xs text-muted-foreground">Events</div>
+                                </div>
+                                <div className="bg-muted rounded-lg p-2 text-center">
+                                  <div className="font-semibold">{stats.totalConnections}</div>
+                                  <div className="text-xs text-muted-foreground">Connections</div>
+                                </div>
+                                <div className="bg-muted rounded-lg p-2 text-center">
+                                  <div className="font-semibold">{stats.verifiedEvents}</div>
+                                  <div className="text-xs text-muted-foreground">Verified</div>
+                                </div>
+                                <div className="bg-muted rounded-lg p-2 text-center">
+                                  <div className="font-semibold">{stats.lockedEvents}</div>
+                                  <div className="text-xs text-muted-foreground">Locked</div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Event Types Summary */}
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Event Types</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              {Object.entries(
+                                events.reduce((acc, e) => {
+                                  acc[e.eventType] = (acc[e.eventType] || 0) + 1;
+                                  return acc;
+                                }, {} as Record<string, number>)
+                              ).map(([type, count]) => (
+                                <div key={type} className="flex items-center justify-between text-sm">
+                                  <span className="text-muted-foreground">{type}</span>
+                                  <Badge variant="secondary">{count}</Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        {/* Online Users */}
+                        {onlineUsers.length > 0 && (
+                          <Card>
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm flex items-center gap-2">
+                                <Users className="h-4 w-4" />
+                                Online Users ({onlineUsers.length})
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-2">
+                                {onlineUsers.map((u) => (
+                                  <div key={u.userId} className="flex items-center gap-2 text-sm">
+                                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                                    <span>{u.userName}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Recent Activity */}
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Recent Activity</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              {events.slice(0, 5).map((event) => (
+                                <div
+                                  key={event.id}
+                                  className="flex items-center gap-2 text-sm py-1 border-b last:border-0"
+                                >
+                                  <div
+                                    className="w-2 h-2 rounded-full"
+                                    style={{
+                                      backgroundColor: event.color || '#6b7280'
+                                    }}
+                                  />
+                                  <span className="truncate flex-1">{event.title}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(event.updatedAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </ScrollArea>
+                  )}
+
+                  {/* Comments tab content */}
+                  {rightPanelTab === 'comments' && (
+                    <CommentsPanel
+                      projectId={projectId}
+                      eventId={selectedEvent?.id}
+                      relationshipId={selectedRelationship?.id}
+                    />
+                  )}
+
+                  {/* AI Quick Analysis tab content */}
+                  {rightPanelTab === 'ai' && (
+                    <AIAnalysisPanel
+                      projectId={projectId}
+                      onAcceptRelationship={handleAcceptRelationship}
+                      onEventSelect={handleEventClick}
+                      compact
+                    />
+                  )}
+                </div>
               </ResizablePanel>
             </>
           )}
         </ResizablePanelGroup>
       </div>
+
+      {/* Evidence Dialog */}
+      <EvidenceDialog
+        open={showEvidenceDialog}
+        onOpenChange={setShowEvidenceDialog}
+        projectId={projectId}
+        evidence={editingEvidence}
+        onSuccess={() => {
+          setShowEvidenceDialog(false);
+          setEditingEvidence(null);
+        }}
+      />
     </div>
   );
 }
