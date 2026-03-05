@@ -6,6 +6,25 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.0.6] - 2025-03-06
+
+### 🔧 الإصلاحات
+
+#### إصلاح خطأ checkConnection في Database Manager
+
+**المشكلة:**
+خطأ `checkConnection is not a function` عند تحميل صفحة Database Manager.
+
+**السبب:**
+الصفحة تحاول استخدام الدوال مباشرة من الـ store بينما هي موجودة داخل كائن `actions`.
+
+**الملفات المتأثرة:**
+- `src/app/admin/db-manager/page.tsx` - تصحيح الوصول للدوال
+
+**التفاصيل:** انظر `changelog/v1.0.6.md`
+
+---
+
 ## [1.0.5] - 2025-03-06
 
 ### 🔧 الإصلاحات
