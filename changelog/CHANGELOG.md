@@ -6,6 +6,26 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.0.4] - 2025-03-06
+
+### 🔧 الإصلاحات
+
+#### إصلاح عرض قاعدة البيانات في لوحة الإدارة
+
+**المشكلة:**
+قاعدة البيانات لا تظهر في واجهة Database Management.
+
+**السبب:**
+SQLite يعيد `BigInt` لكن الكود يحاول جمعه مع أرقام عادية.
+
+**الملفات المتأثرة:**
+- `src/app/api/admin/db/tables/route.ts`
+- `src/app/api/admin/db/metrics/route.ts`
+
+**التفاصيل:** انظر `changelog/v1.0.4.md`
+
+---
+
 ## [1.0.3] - 2025-03-06
 
 ### 🔧 الإصلاحات
