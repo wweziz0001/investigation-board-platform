@@ -415,27 +415,32 @@ model AuditLog {
   resourceId    String?
   resourceName  String?
   details       String?     // JSON details
+  query         String?     // SQL query if applicable
   ipAddress     String?
   userAgent     String?
   status        String      @default("success")
+  errorMessage  String?
+  timestamp     DateTime    @default(now())
   createdAt     DateTime    @default(now())
 
   @@index([userId])
   @@index([action])
   @@index([resourceType])
   @@index([createdAt])
+  @@index([timestamp])
 }
 
 // ==================== Saved Queries (DB Manager) ====================
 
 model SavedQuery {
   id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   name        String
   description String?
   query       String
   isFavorite  Boolean   @default(false)
+  useCount    Int       @default(0)
   tags        String?   // JSON array of tags
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -471,6 +476,26 @@ model DatabaseBackup {
   checksum    String?
   createdAt   DateTime  @default(now())
   createdBy   String?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ==================== Backup Records (DB Manager) ====================
+
+model BackupRecord {
+  id            String    @id @default(uuid())
+  name          String
+  type          String    @default("full")  // full, schema-only, data-only
+  status        String    @default("pending")  // pending, in-progress, completed, failed
+  size          Int       @default(0)
+  location      String?
+  checksum      String?
+  duration      Int?      // Duration in milliseconds
+  errorMessage  String?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  createdBy     String?
 
   @@index([status])
   @@index([createdAt])

@@ -6,6 +6,27 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.0.5] - 2025-03-06
+
+### 🔧 الإصلاحات
+
+#### إصلاح Database Manager
+
+**المشكلة:**
+قاعدة البيانات لا تظهر في واجهة Database Management.
+
+**السبب:**
+- تنسيق استجابة API غير متطابق مع ما يتوقعه الـ store
+- إضافة نماذج Prisma مفقودة
+
+**الملفات المتأثرة:**
+- `src/stores/database-store.ts` - تصحيح قراءة البيانات
+- `prisma/schema.prisma` - إضافة BackupRecord، تحسين AuditLog و SavedQuery
+
+**التفاصيل:** انظر `changelog/v1.0.5.md`
+
+---
+
 ## [1.0.4] - 2025-03-06
 
 ### 🔧 الإصلاحات
