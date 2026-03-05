@@ -48,7 +48,7 @@ function RelationshipEdgeComponent({
   selected,
   markerEnd,
 }: EdgeProps) {
-  const edgeData = data as RelationshipEdgeData;
+  const edgeData = data as unknown as RelationshipEdgeData;
   
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,

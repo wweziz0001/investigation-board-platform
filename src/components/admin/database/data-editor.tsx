@@ -145,8 +145,8 @@ export function DataEditor({ selectedTable }: DataEditorProps) {
             </SelectTrigger>
             <SelectContent>
               {queryResult.columns.map((col) => (
-                <SelectItem key={col} value={col}>
-                  {col}
+                <SelectItem key={col.name} value={col.name}>
+                  {col.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -185,8 +185,8 @@ export function DataEditor({ selectedTable }: DataEditorProps) {
                 <TableRow>
                   <TableHead className="w-[50px]">#</TableHead>
                   {queryResult.columns.map((col) => (
-                    <TableHead key={col} className="font-medium">
-                      {col}
+                    <TableHead key={col.name} className="font-medium">
+                      {col.name}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -198,8 +198,8 @@ export function DataEditor({ selectedTable }: DataEditorProps) {
                       {(currentPage - 1) * pageSize + index + 1}
                     </TableCell>
                     {queryResult.columns.map((col) => (
-                      <TableCell key={col} className="max-w-[200px] truncate">
-                        {formatCellValue(row[col])}
+                      <TableCell key={col.name} className="max-w-[200px] truncate">
+                        {formatCellValue(row[col.name])}
                       </TableCell>
                     ))}
                   </TableRow>

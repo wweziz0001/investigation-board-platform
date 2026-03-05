@@ -48,13 +48,21 @@ import { useDatabaseStore } from '@/stores/database-store';
 
 export default function DatabaseManagerPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { actions, tables, connectionStatus, isLoadingTables, metrics } = useDatabaseStore();
+  const { 
+    checkConnection, 
+    fetchTables, 
+    fetchMetrics, 
+    tables, 
+    connectionStatus, 
+    isLoadingTables, 
+    metrics 
+  } = useDatabaseStore();
 
   useEffect(() => {
-    actions.checkConnection();
-    actions.fetchTables();
-    actions.fetchMetrics();
-  }, [actions]);
+    checkConnection();
+    fetchTables();
+    fetchMetrics();
+  }, [checkConnection, fetchTables, fetchMetrics]);
 
   return (
     <div className="h-full flex flex-col">
@@ -89,9 +97,9 @@ export default function DatabaseManagerPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                actions.checkConnection();
-                actions.fetchTables();
-                actions.fetchMetrics();
+                checkConnection();
+                fetchTables();
+                fetchMetrics();
               }}
             >
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
@@ -158,7 +166,7 @@ function DashboardTab({
   tables,
   setActiveTab,
 }: {
-  metrics: any;
+  metrics: { totalTables?: number; totalRows?: number; totalSize?: number; queryCount?: number; avgQueryTime?: number } | null;
   tables: any[];
   setActiveTab: (tab: string) => void;
 }) {
@@ -169,6 +177,15 @@ function DashboardTab({
     (tablePage - 1) * tablesPerPage,
     tablePage * tablesPerPage
   );
+
+  // Safe metrics access with defaults
+  const safeMetrics = {
+    totalTables: metrics?.totalTables ?? 0,
+    totalRows: metrics?.totalRows ?? 0,
+    totalSize: metrics?.totalSize ?? 0,
+    queryCount: metrics?.queryCount ?? 0,
+    avgQueryTime: metrics?.avgQueryTime ?? 0,
+  };
 
   return (
     <ScrollArea className="h-full p-6">
@@ -181,7 +198,7 @@ function DashboardTab({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {metrics.totalTables || tables.length}
+                {safeMetrics.totalTables || tables.length}
               </div>
               <p className="text-xs text-muted-foreground">
                 {tables.filter((t) => t.type === 'table').length} tables,{' '}
@@ -196,7 +213,7 @@ function DashboardTab({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {(metrics.totalRows || 0).toLocaleString()}
+                {safeMetrics.totalRows.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">Across all tables</p>
             </CardContent>
@@ -208,8 +225,8 @@ function DashboardTab({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {metrics.totalSize
-                  ? (metrics.totalSize / 1024 / 1024).toFixed(2)
+                {safeMetrics.totalSize
+                  ? (safeMetrics.totalSize / 1024 / 1024).toFixed(2)
                   : '0'}{' '}
                 MB
               </div>
@@ -222,9 +239,9 @@ function DashboardTab({
               <Play className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.queryCount || 0}</div>
+              <div className="text-2xl font-bold">{safeMetrics.queryCount}</div>
               <p className="text-xs text-muted-foreground">
-                Avg: {metrics.avgQueryTime?.toFixed(2) || 0}ms
+                Avg: {safeMetrics.avgQueryTime.toFixed(2)}ms
               </p>
             </CardContent>
           </Card>
@@ -754,7 +771,13 @@ function BackupTab() {
 }
 
 // Performance Monitor Tab
-function PerformanceMonitorTab({ metrics }: { metrics: any }) {
+function PerformanceMonitorTab({ metrics }: { metrics: { totalSize?: number; totalTables?: number; avgQueryTime?: number } | null }) {
+  const safeMetrics = {
+    totalSize: metrics?.totalSize ?? 0,
+    totalTables: metrics?.totalTables ?? 0,
+    avgQueryTime: metrics?.avgQueryTime ?? 0,
+  };
+
   return (
     <ScrollArea className="h-full p-6">
       <div className="space-y-6">
@@ -765,8 +788,8 @@ function PerformanceMonitorTab({ metrics }: { metrics: any }) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {metrics.totalSize
-                  ? (metrics.totalSize / 1024 / 1024).toFixed(2)
+                {safeMetrics.totalSize
+                  ? (safeMetrics.totalSize / 1024 / 1024).toFixed(2)
                   : '0'}{' '}
                 MB
               </div>
@@ -777,7 +800,7 @@ function PerformanceMonitorTab({ metrics }: { metrics: any }) {
               <CardTitle className="text-sm font-medium">Total Tables</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metrics.totalTables || 0}</div>
+              <div className="text-2xl font-bold">{safeMetrics.totalTables}</div>
             </CardContent>
           </Card>
           <Card>
@@ -786,7 +809,7 @@ function PerformanceMonitorTab({ metrics }: { metrics: any }) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {metrics.avgQueryTime?.toFixed(2) || 0}ms
+                {safeMetrics.avgQueryTime.toFixed(2)}ms
               </div>
             </CardContent>
           </Card>

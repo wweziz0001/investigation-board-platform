@@ -290,3 +290,70 @@ export function canManageUsers(currentUser: AuthUser | null, targetUserRole?: Us
   
   return true;
 }
+
+// Role hierarchy for permission checks
+export const ROLE_HIERARCHY: Record<UserRole, number> = {
+  ADMIN: 100,
+  INVESTIGATOR: 50,
+  VIEWER: 10,
+};
+
+// Check if user has access to a project
+export async function hasProjectAccess(
+  userId: string,
+  projectId: string,
+  requiredRole: 'VIEWER' | 'INVESTIGATOR' | 'ADMIN' | 'MEMBER' | 'OWNER' = 'VIEWER'
+): Promise<{ hasAccess: boolean; memberRole?: string; project?: unknown; error?: string }> {
+  try {
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      include: {
+        members: {
+          where: { userId },
+          select: { role: true },
+        },
+      },
+    });
+
+    if (!project) {
+      return { hasAccess: false, error: 'Project not found' };
+    }
+
+    // Admin users have access to all projects
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user?.role === 'ADMIN') {
+      return { hasAccess: true, memberRole: 'ADMIN', project };
+    }
+
+    // Check if user is a member
+    const membership = project.members[0];
+    if (!membership) {
+      return { hasAccess: false, error: 'Not a member of this project' };
+    }
+
+    // Map member roles to hierarchy levels
+    const roleLevel: Record<string, number> = {
+      'VIEWER': 10,
+      'MEMBER': 30,
+      'INVESTIGATOR': 50,
+      'ADMIN': 80,
+      'OWNER': 100,
+    };
+
+    const memberRoleLevel = roleLevel[membership.role] || 0;
+    const requiredLevel = roleLevel[requiredRole] || 0;
+
+    return {
+      hasAccess: memberRoleLevel >= requiredLevel,
+      memberRole: membership.role,
+      project,
+    };
+  } catch (error) {
+    console.error('Error checking project access:', error);
+    return { hasAccess: false, error: 'Failed to check project access' };
+  }
+}

@@ -37,27 +37,38 @@ export default function AdminLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, logout, checkAuth } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   // Check authentication and admin role
   useEffect(() => {
-    if (!isAuthenticated) {
+    const verifyAuth = async () => {
+      setIsChecking(true);
+      await checkAuth();
+      setIsChecking(false);
+    };
+    
+    verifyAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    if (!isChecking && !isAuthenticated) {
       router.push('/login');
       return;
     }
     
-    if (user && user.role !== 'ADMIN') {
+    if (!isChecking && user && user.role !== 'ADMIN') {
       router.push('/');
     }
-  }, [isAuthenticated, user, router]);
+  }, [isChecking, isAuthenticated, user, router]);
 
   const handleLogout = () => {
     logout();
     router.push('/login');
   };
 
-  if (!isAuthenticated || (user && user.role !== 'ADMIN')) {
+  if (isChecking || !isAuthenticated || (user && user.role !== 'ADMIN')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />

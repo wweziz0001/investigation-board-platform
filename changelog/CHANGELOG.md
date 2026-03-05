@@ -6,6 +6,78 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.0.2] - 2025-03-05
+
+### 🔧 الإصلاحات
+
+#### 1. إصلاح الدوال المفقودة في auth.ts
+
+**المشكلة:**
+دوال `hasProjectAccess` و `ROLE_HIERARCHY` مطلوبة في API routes لكنها لم تكن مُصدّرة.
+
+**الملفات المتأثرة:**
+- `src/lib/auth.ts` - إضافة الدوال المفقودة
+
+**التفاصيل:** انظر `changelog/v1.0.2.md`
+
+#### 2. إصلاح database-store.ts
+
+**المشكلة:**
+خصائص مفقودة في `DatabaseState` تسبب أخطاء في مدير قاعدة البيانات.
+
+**الملفات المتأثرة:**
+- `src/stores/database-store.ts` - إضافة الخصائص المفقودة
+
+**التفاصيل:** انظر `changelog/v1.0.2.md`
+
+#### 3. إصلاح project-store.ts
+
+**المشكلة:**
+أنواع `EventType` و `EventStatus` لا تطابق القيم المستخدمة في الواجهة.
+
+**الملفات المتأثرة:**
+- `src/stores/project-store.ts` - تحديث الأنواع
+
+**التفاصيل:** انظر `changelog/v1.0.2.md`
+
+#### 4. إصلاح مكونات لوحة التحقيق
+
+**المشكلة:**
+أخطاء TypeScript في React Flow components.
+
+**الملفات المتأثرة:**
+- `src/components/board/investigation-board.tsx`
+- `src/components/board/event-node.tsx`
+- `src/components/board/relationship-edge.tsx`
+- `src/components/board/side-panel.tsx`
+
+**التفاصيل:** انظر `changelog/v1.0.2.md`
+
+#### 5. إصلاح المصادقة في admin/layout.tsx
+
+**المشكلة:**
+إعادة توجيه إلى صفحة تسجيل الدخول بعد تسجيل الدخول بنجاح.
+
+**السبب:**
+التحقق من `isAuthenticated` قبل استدعاء `checkAuth()`.
+
+**الملفات المتأثرة:**
+- `src/app/admin/layout.tsx` - إضافة التحقق من المصادقة
+
+**التفاصيل:** انظر `changelog/v1.0.2.md`
+
+#### 6. إصلاح admin/db-manager/page.tsx
+
+**المشكلة:**
+خطأ `Cannot read properties of undefined (reading 'totalTables')`.
+
+**الملفات المتأثرة:**
+- `src/app/admin/db-manager/page.tsx` - إضافة null checks
+
+**التفاصيل:** انظر `changelog/v1.0.2.md`
+
+---
+
 ## [1.0.1] - 2025-03-05
 
 ### 🔧 الإصلاحات
