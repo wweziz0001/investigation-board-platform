@@ -28,6 +28,33 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   ArrowLeft,
   Users,
   MoreVertical,
@@ -45,9 +72,17 @@ import {
   WifiOff,
   PanelRightClose,
   PanelRightOpen,
+  UserPlus,
+  Copy,
+  Check,
+  Crown,
+  Shield,
+  User,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 // Project status colors
 const STATUS_COLORS: Record<string, string> = {
@@ -87,6 +122,39 @@ export default function ProjectPage() {
   const [showSidePanel, setShowSidePanel] = useState(true);
   const [rightPanelTab, setRightPanelTab] = useState<'details' | 'comments' | 'ai'>('details');
 
+  // Dialog states
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showMembersDialog, setShowMembersDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    name: '',
+    description: '',
+    status: '',
+    priority: '',
+  });
+
+  // Members state
+  const [members, setMembers] = useState<Array<{
+    id: string;
+    role: string;
+    user: {
+      id: string;
+      username: string;
+      firstName?: string;
+      lastName?: string;
+      avatar?: string;
+      email: string;
+    };
+  }>>([]);
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState('MEMBER');
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
   // Join project room for collaboration
   useEffect(() => {
     if (projectId && isConnected !== null) {
@@ -101,6 +169,18 @@ export default function ProjectPage() {
       loadProject(projectId);
     }
   }, [projectId, loadProject]);
+
+  // Initialize edit form when project loads
+  useEffect(() => {
+    if (project) {
+      setEditForm({
+        name: project.name,
+        description: project.description || '',
+        status: project.status,
+        priority: project.priority,
+      });
+    }
+  }, [project]);
 
   // Get selected event
   const selectedEvent = selectedEventIds.length === 1
@@ -156,6 +236,181 @@ export default function ProjectPage() {
   const handleEventClick = useCallback((eventId: string) => {
     setActiveTab('board');
   }, []);
+
+  // Handle edit project
+  const handleEditProject = useCallback(async () => {
+    if (!project) return;
+    
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        loadProject(projectId);
+        setShowEditDialog(false);
+        toast.success('Project updated successfully');
+      } else {
+        toast.error(data.error || 'Failed to update project');
+      }
+    } catch {
+      toast.error('Failed to update project');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [project, projectId, editForm, loadProject]);
+
+  // Load members for manage members dialog
+  const loadMembers = useCallback(async () => {
+    setIsLoadingMembers(true);
+    try {
+      const response = await fetch(`/api/projects/${projectId}/members`);
+      const data = await response.json();
+      if (data.success) {
+        setMembers(data.data);
+      }
+    } catch {
+      toast.error('Failed to load members');
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  }, [projectId]);
+
+  // Handle add member
+  const handleAddMember = useCallback(async () => {
+    if (!newMemberEmail.trim()) {
+      toast.error('Please enter a user email');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // First find user by email
+      const searchResponse = await fetch(`/api/users/search?email=${encodeURIComponent(newMemberEmail)}`);
+      const searchData = await searchResponse.json();
+      
+      if (!searchData.success || !searchData.data) {
+        toast.error('User not found');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const response = await fetch(`/api/projects/${projectId}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: searchData.data.id,
+          role: newMemberRole,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setMembers(prev => [...prev, data.data]);
+        setNewMemberEmail('');
+        setNewMemberRole('MEMBER');
+        toast.success('Member added successfully');
+      } else {
+        toast.error(data.error || 'Failed to add member');
+      }
+    } catch {
+      toast.error('Failed to add member');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [projectId, newMemberEmail, newMemberRole]);
+
+  // Handle remove member
+  const handleRemoveMember = useCallback(async (memberId: string) => {
+    if (!confirm('Remove this member from the project?')) return;
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/members/${memberId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setMembers(prev => prev.filter(m => m.id !== memberId));
+        toast.success('Member removed');
+      } else {
+        toast.error(data.error || 'Failed to remove member');
+      }
+    } catch {
+      toast.error('Failed to remove member');
+    }
+  }, [projectId]);
+
+  // Handle archive project
+  const handleArchiveProject = useCallback(async () => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isArchived: true }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Project archived');
+        router.push('/');
+      } else {
+        toast.error(data.error || 'Failed to archive project');
+      }
+    } catch {
+      toast.error('Failed to archive project');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [projectId, router]);
+
+  // Handle delete project
+  const handleDeleteProject = useCallback(async () => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Project deleted');
+        router.push('/');
+      } else {
+        toast.error(data.error || 'Failed to delete project');
+      }
+    } catch {
+      toast.error('Failed to delete project');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [projectId, router]);
+
+  // Handle copy share link
+  const handleCopyShareLink = useCallback(() => {
+    const shareUrl = `${window.location.origin}/projects/${projectId}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    toast.success('Link copied to clipboard');
+    setTimeout(() => setCopied(false), 2000);
+  }, [projectId]);
+
+  // Get role icon
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'OWNER':
+        return <Crown className="h-4 w-4 text-yellow-500" />;
+      case 'ADMIN':
+        return <Shield className="h-4 w-4 text-blue-500" />;
+      default:
+        return <User className="h-4 w-4 text-gray-500" />;
+    }
+  };
 
   // Events with dates for timeline
   const eventsWithDates = events
@@ -263,24 +518,27 @@ export default function ProjectPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Project
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  setShowMembersDialog(true);
+                  loadMembers();
+                }}>
                   <Users className="h-4 w-4 mr-2" />
                   Manage Members
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleArchiveProject}>
                   <Archive className="h-4 w-4 mr-2" />
                   Archive
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem className="text-destructive" onClick={() => setShowDeleteDialog(true)}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete
                 </DropdownMenuItem>
@@ -491,6 +749,204 @@ export default function ProjectPage() {
           )}
         </ResizablePanelGroup>
       </div>
+
+      {/* Edit Project Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Project</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Project Name</Label>
+              <Input
+                id="name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="Project name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                placeholder="Project description"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={editForm.status}
+                  onValueChange={(value) => setEditForm({ ...editForm, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PLANNING">Planning</SelectItem>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="PAUSED">Paused</SelectItem>
+                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Priority</Label>
+                <Select
+                  value={editForm.priority}
+                  onValueChange={(value) => setEditForm({ ...editForm, priority: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LOW">Low</SelectItem>
+                    <SelectItem value="MEDIUM">Medium</SelectItem>
+                    <SelectItem value="HIGH">High</SelectItem>
+                    <SelectItem value="CRITICAL">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditProject} disabled={isSubmitting || !editForm.name.trim()}>
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Members Dialog */}
+      <Dialog open={showMembersDialog} onOpenChange={setShowMembersDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Manage Members</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Add member form */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="User email"
+                value={newMemberEmail}
+                onChange={(e) => setNewMemberEmail(e.target.value)}
+                className="flex-1"
+              />
+              <Select value={newMemberRole} onValueChange={setNewMemberRole}>
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MEMBER">Member</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button onClick={handleAddMember} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+              </Button>
+            </div>
+
+            {/* Members list */}
+            <div className="border rounded-lg divide-y">
+              {isLoadingMembers ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : members.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No members found
+                </div>
+              ) : (
+                members.map((member) => (
+                  <div key={member.id} className="flex items-center justify-between p-3">
+                    <div className="flex items-center gap-3">
+                      {getRoleIcon(member.role)}
+                      <div>
+                        <div className="font-medium">
+                          {member.user.firstName && member.user.lastName
+                            ? `${member.user.firstName} ${member.user.lastName}`
+                            : member.user.username}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{member.user.email}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {member.role}
+                      </Badge>
+                      {member.role !== 'OWNER' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => handleRemoveMember(member.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Project</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Share this link to give others access to this project. They will need to be added as members to view it.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/projects/${projectId}`}
+                className="flex-1"
+              />
+              <Button onClick={handleCopyShareLink} className="shrink-0">
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{project?.name}&quot;? This action cannot be undone and will permanently remove all events, relationships, and evidence associated with this project.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProject}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
