@@ -72,6 +72,9 @@ interface EventNodeData {
   color?: string;
   isSelected?: boolean;
   isConnecting?: boolean;
+  onEdit?: () => void;
+  onConnect?: () => void;
+  onDelete?: () => void;
 }
 
 function EventNodeComponent({ data, selected }: NodeProps) {
@@ -247,7 +250,15 @@ function EventNodeComponent({ data, selected }: NodeProps) {
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background border rounded-lg shadow-lg p-1 z-10">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    nodeData.onEdit?.();
+                  }}
+                >
                   <Edit className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
@@ -255,7 +266,15 @@ function EventNodeComponent({ data, selected }: NodeProps) {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    nodeData.onConnect?.();
+                  }}
+                >
                   <Link2 className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
@@ -263,7 +282,15 @@ function EventNodeComponent({ data, selected }: NodeProps) {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 text-destructive hover:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    nodeData.onDelete?.();
+                  }}
+                >
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>

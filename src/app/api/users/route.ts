@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      user,
+      data: user,
     });
   } catch (error) {
     console.error('Create user error:', error);
