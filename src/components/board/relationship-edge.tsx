@@ -62,22 +62,10 @@ function RelationshipEdgeComponent({
   const color = edgeData?.color || '#6b7280';
   const label = edgeData?.label || RELATIONSHIP_LABELS[edgeData?.relationType] || 'Related';
   const strength = edgeData?.strength || 50;
+  const strokeWidth = style.strokeWidth as number || 2;
 
   return (
     <>
-      {/* Glow effect for selected */}
-      {selected && (
-        <path
-          d={edgePath}
-          style={{
-            stroke: color,
-            strokeWidth: (style.strokeWidth as number || 2) + 4,
-            strokeOpacity: 0.3,
-            fill: 'none',
-          }}
-        />
-      )}
-      
       {/* Main edge path */}
       <path
         id={id}
@@ -85,13 +73,9 @@ function RelationshipEdgeComponent({
         style={{
           ...style,
           stroke: selected ? color : style.stroke as string || color,
-          strokeWidth: selected ? (style.strokeWidth as number || 2) + 1 : style.strokeWidth as number || 2,
+          strokeWidth: selected ? strokeWidth + 1 : strokeWidth,
         }}
-        className={cn(
-          'transition-all duration-200',
-          selected && 'filter drop-shadow-md',
-          !selected && 'hover:stroke-[3px]'
-        )}
+        className="transition-all duration-200"
         markerEnd={markerEnd}
       />
 
@@ -104,11 +88,12 @@ function RelationshipEdgeComponent({
             pointerEvents: 'all',
             borderColor: color,
             color: color,
+            ...(selected && { ringColor: color })
           }}
           className={cn(
             'px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200',
-            'bg-background/95 border shadow-sm backdrop-blur-sm',
-            selected && 'ring-1 ring-primary shadow-md'
+            'bg-background border',
+            selected && 'ring-1 ring-offset-1'
           )}
         >
           {label}
