@@ -8,7 +8,6 @@ import { useCollaboration } from '@/hooks/use-collaboration';
 import { InvestigationBoard } from '@/components/board/investigation-board';
 import { TimelineView } from '@/components/board/timeline-view';
 import { EvidencePanel } from '@/components/board/evidence-panel';
-import { EvidenceDialog } from '@/components/board/evidence-dialog';
 import { AIAnalysisPanel } from '@/components/board/ai-analysis-panel';
 import { CommentsPanel } from '@/components/board/comments-panel';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,6 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -31,32 +29,25 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   ArrowLeft,
-  Settings,
   Users,
-  FileText,
-  Link2,
   MoreVertical,
   Edit,
   Archive,
   Trash2,
   Share2,
-  Plus,
   Calendar,
   MapPin,
-  Tag,
-  Clock,
+  Link2,
   Activity,
   Brain,
   MessageSquare,
   Wifi,
   WifiOff,
-  Sparkles,
   PanelRightClose,
   PanelRightOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import type { Event, Relationship } from '@/stores/project-store';
 
 // Project status colors
 const STATUS_COLORS: Record<string, string> = {
@@ -65,14 +56,6 @@ const STATUS_COLORS: Record<string, string> = {
   PAUSED: 'bg-yellow-500',
   COMPLETED: 'bg-purple-500',
   ARCHIVED: 'bg-gray-500',
-};
-
-// Project priority colors
-const PRIORITY_COLORS: Record<string, string> = {
-  LOW: 'text-gray-500',
-  MEDIUM: 'text-yellow-500',
-  HIGH: 'text-orange-500',
-  CRITICAL: 'text-red-500',
 };
 
 export default function ProjectPage() {
@@ -97,16 +80,11 @@ export default function ProjectPage() {
     onlineUsers,
     joinProject,
     leaveProject,
-    emitEventCreated,
-    emitEventUpdated,
-    emitEventDeleted,
     emitRelationshipCreated,
   } = useCollaboration();
 
   const [activeTab, setActiveTab] = useState('board');
   const [showSidePanel, setShowSidePanel] = useState(true);
-  const [showEvidenceDialog, setShowEvidenceDialog] = useState(false);
-  const [editingEvidence, setEditingEvidence] = useState<any>(null);
   const [rightPanelTab, setRightPanelTab] = useState<'details' | 'comments' | 'ai'>('details');
 
   // Join project room for collaboration
@@ -145,11 +123,9 @@ export default function ProjectPage() {
 
   // Handle accepting AI-suggested relationship
   const handleAcceptRelationship = useCallback(async (rel: {
-    sourceId: string;
-    targetId: string;
+    sourceEventId: string;
+    targetEventId: string;
     relationType: string;
-    label: string;
-    confidence: number;
   }) => {
     try {
       const response = await fetch('/api/relationships', {
@@ -157,11 +133,9 @@ export default function ProjectPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId,
-          sourceEventId: rel.sourceId,
-          targetEventId: rel.targetId,
+          sourceEventId: rel.sourceEventId,
+          targetEventId: rel.targetEventId,
           relationType: rel.relationType,
-          label: rel.label,
-          confidence: rel.confidence,
         }),
       });
       
@@ -181,7 +155,6 @@ export default function ProjectPage() {
   // Handle event click from timeline
   const handleEventClick = useCallback((eventId: string) => {
     setActiveTab('board');
-    // The board will handle the selection
   }, []);
 
   // Events with dates for timeline
@@ -329,11 +302,10 @@ export default function ProjectPage() {
                     Board
                   </TabsTrigger>
                   <TabsTrigger value="timeline" className="text-sm gap-1">
-                    <Clock className="h-3 w-3" />
+                    Board
                     Timeline
                   </TabsTrigger>
                   <TabsTrigger value="evidence" className="text-sm gap-1">
-                    <FileText className="h-3 w-3" />
                     Evidence
                   </TabsTrigger>
                   <TabsTrigger value="ai" className="text-sm gap-1">
@@ -356,17 +328,7 @@ export default function ProjectPage() {
               </TabsContent>
               
               <TabsContent value="evidence" className="flex-1 m-0 overflow-hidden">
-                <EvidencePanel
-                  projectId={projectId}
-                  onAddEvidence={() => {
-                    setEditingEvidence(null);
-                    setShowEvidenceDialog(true);
-                  }}
-                  onEditEvidence={(evidence) => {
-                    setEditingEvidence(evidence);
-                    setShowEvidenceDialog(true);
-                  }}
-                />
+                <EvidencePanel projectId={projectId} />
               </TabsContent>
               
               <TabsContent value="ai" className="flex-1 m-0 overflow-hidden">
@@ -395,7 +357,7 @@ export default function ProjectPage() {
                           Comments
                         </TabsTrigger>
                         <TabsTrigger value="ai" className="text-xs px-2 gap-1">
-                          <Sparkles className="h-3 w-3" />
+                          <Brain className="h-3 w-3" />
                           AI
                         </TabsTrigger>
                       </TabsList>
@@ -450,17 +412,6 @@ export default function ProjectPage() {
                                   />
                                 </div>
                               </div>
-
-                              <div className="flex gap-2 pt-2">
-                                <Button size="sm" variant="outline" className="flex-1">
-                                  <Edit className="h-3 w-3 mr-1" />
-                                  Edit
-                                </Button>
-                                <Button size="sm" variant="outline" className="flex-1">
-                                  <Link2 className="h-3 w-3 mr-1" />
-                                  Connect
-                                </Button>
-                              </div>
                             </CardContent>
                           </Card>
                         ) : (
@@ -491,28 +442,6 @@ export default function ProjectPage() {
                           </Card>
                         )}
 
-                        {/* Event Types Summary */}
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Event Types</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-2">
-                              {Object.entries(
-                                events.reduce((acc, e) => {
-                                  acc[e.eventType] = (acc[e.eventType] || 0) + 1;
-                                  return acc;
-                                }, {} as Record<string, number>)
-                              ).map(([type, count]) => (
-                                <div key={type} className="flex items-center justify-between text-sm">
-                                  <span className="text-muted-foreground">{type}</span>
-                                  <Badge variant="secondary">{count}</Badge>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
-
                         {/* Online Users */}
                         {onlineUsers.length > 0 && (
                           <Card>
@@ -534,34 +463,6 @@ export default function ProjectPage() {
                             </CardContent>
                           </Card>
                         )}
-
-                        {/* Recent Activity */}
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Recent Activity</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-2">
-                              {events.slice(0, 5).map((event) => (
-                                <div
-                                  key={event.id}
-                                  className="flex items-center gap-2 text-sm py-1 border-b last:border-0"
-                                >
-                                  <div
-                                    className="w-2 h-2 rounded-full"
-                                    style={{
-                                      backgroundColor: event.color || '#6b7280'
-                                    }}
-                                  />
-                                  <span className="truncate flex-1">{event.title}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(event.updatedAt).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
                       </div>
                     </ScrollArea>
                   )}
@@ -581,7 +482,6 @@ export default function ProjectPage() {
                       projectId={projectId}
                       onAcceptRelationship={handleAcceptRelationship}
                       onEventSelect={handleEventClick}
-                      compact
                     />
                   )}
                 </div>
@@ -590,18 +490,6 @@ export default function ProjectPage() {
           )}
         </ResizablePanelGroup>
       </div>
-
-      {/* Evidence Dialog */}
-      <EvidenceDialog
-        open={showEvidenceDialog}
-        onOpenChange={setShowEvidenceDialog}
-        projectId={projectId}
-        evidence={editingEvidence}
-        onSuccess={() => {
-          setShowEvidenceDialog(false);
-          setEditingEvidence(null);
-        }}
-      />
     </div>
   );
 }

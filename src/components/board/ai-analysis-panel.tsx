@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import {
   Brain,
   Link2,
-  Pattern,
+  Layers,
   AlertTriangle,
   FileText,
   Check,
@@ -114,8 +114,8 @@ const ANALYSIS_TYPES: Array<{
   },
   {
     type: 'patterns',
-    label: 'Patterns',
-    icon: <Pattern className="h-4 w-4" />,
+    label: 'Layerss',
+    icon: <Layers className="h-4 w-4" />,
     description: 'Identify recurring patterns and trends',
     color: 'text-purple-500',
   },
@@ -394,11 +394,11 @@ export function AIAnalysisPanel({
   };
 
   // Render patterns results
-  const renderPatterns = (data: AnalysisResponse) => {
+  const renderLayerss = (data: AnalysisResponse) => {
     if (!data.patterns || data.patterns.length === 0) {
       return (
         <div className="text-center py-8 text-muted-foreground">
-          <Pattern className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <Layers className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p>No patterns detected.</p>
           <p className="text-sm">AI could not identify significant patterns.</p>
         </div>
@@ -613,7 +613,7 @@ export function AIAnalysisPanel({
       case 'relationships':
         return renderRelationships(data);
       case 'patterns':
-        return renderPatterns(data);
+        return renderLayerss(data);
       case 'anomalies':
         return renderAnomalies(data);
       case 'summary':

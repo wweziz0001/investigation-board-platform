@@ -169,7 +169,7 @@ export function EvidenceDialog({
         eventId: evidence.eventId || null,
         fileName: evidence.fileName || '',
         filePath: evidence.filePath || '',
-        fileSize: evidence.fileSize,
+        fileSize: evidence.fileSize ?? null,
         mimeType: evidence.mimeType || '',
         externalUrl: evidence.externalUrl || '',
         externalSource: evidence.externalSource || '',
