@@ -6,6 +6,28 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.0.4] - 2025-03-06
+
+### 🔧 الإصلاحات
+
+#### إصلاح خطأ Cannot read properties of undefined في صفحة المشروع
+
+**المشكلة:**
+خطأ `Cannot read properties of undefined (reading 'verified')` عند فتح صفحة المشروع.
+
+**السبب:**
+مصفوفة `events` قد تحتوي على عناصر `undefined` أو `null`.
+
+**الحل:**
+إضافة `.filter(Boolean)` قبل `filter()` لإزالة العناصر الفارغة.
+
+**الملفات المتأثرة:**
+- `src/app/projects/[id]/page.tsx`
+
+**التفاصيل:** انظر `changelog/v2.0.4.md`
+
+---
+
 ## [2.0.3] - 2025-03-06
 
 ### 🔧 الإصلاحات
