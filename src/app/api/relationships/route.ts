@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Check project access
-    const accessResult = await hasProjectAccess(projectId, authResult.user.id);
+    const accessResult = await hasProjectAccess(authResult.user.id, projectId);
     if (!accessResult.hasAccess) {
       return apiForbidden(accessResult.error);
     }
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check project access - need at least MEMBER role to create relationships
-    const accessResult = await hasProjectAccess(projectId, authResult.user.id, 'MEMBER');
+    const accessResult = await hasProjectAccess(authResult.user.id, projectId, 'MEMBER');
     if (!accessResult.hasAccess) {
       return apiForbidden(accessResult.error);
     }

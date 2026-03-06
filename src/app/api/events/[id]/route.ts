@@ -118,7 +118,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check project access
-    const accessResult = await hasProjectAccess(event.projectId, authResult.user.id);
+    const accessResult = await hasProjectAccess(authResult.user.id, event.projectId);
     if (!accessResult.hasAccess) {
       return apiForbidden(accessResult.error);
     }
@@ -152,8 +152,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Check project access - need at least MEMBER role to update events
     const accessResult = await hasProjectAccess(
-      existingEvent.projectId,
       authResult.user.id,
+      existingEvent.projectId,
       'MEMBER'
     );
     if (!accessResult.hasAccess) {
@@ -394,8 +394,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Check project access - need at least MEMBER role to delete events
     const accessResult = await hasProjectAccess(
-      existingEvent.projectId,
       authResult.user.id,
+      existingEvent.projectId,
       'MEMBER'
     );
     if (!accessResult.hasAccess) {

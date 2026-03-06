@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   try {
     // Check project access
-    const accessResult = await hasProjectAccess(id, authResult.user.id);
+    const accessResult = await hasProjectAccess(authResult.user.id, id);
     if (!accessResult.hasAccess) {
       return apiForbidden(accessResult.error);
     }
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
   try {
     // Check project access - need at least MEMBER role to update
-    const accessResult = await hasProjectAccess(id, authResult.user.id, 'MEMBER');
+    const accessResult = await hasProjectAccess(authResult.user.id, id, 'MEMBER');
     if (!accessResult.hasAccess) {
       return apiForbidden(accessResult.error);
     }
@@ -222,7 +222,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   try {
     // Check project access - need OWNER role to delete
-    const accessResult = await hasProjectAccess(id, authResult.user.id, 'OWNER');
+    const accessResult = await hasProjectAccess(authResult.user.id, id, 'OWNER');
     
     // System admins can also delete
     if (!accessResult.hasAccess && authResult.user.role !== 'ADMIN') {

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   try {
     // Check project access
-    const accessResult = await hasProjectAccess(id, authResult.user.id);
+    const accessResult = await hasProjectAccess(authResult.user.id, id);
     if (!accessResult.hasAccess) {
       return apiForbidden(accessResult.error);
     }
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   try {
     // Check project access - need ADMIN role to add members
-    const accessResult = await hasProjectAccess(id, authResult.user.id, 'ADMIN');
+    const accessResult = await hasProjectAccess(authResult.user.id, id, 'ADMIN');
     if (!accessResult.hasAccess) {
       return apiForbidden(accessResult.error);
     }

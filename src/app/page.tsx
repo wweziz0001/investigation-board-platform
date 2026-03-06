@@ -576,7 +576,11 @@ export default function DashboardPage() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
-                <Card key={project.id} className="group hover:shadow-md transition-shadow">
+                <Card 
+                  key={project.id} 
+                  className="group hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => router.push(`/projects/${project.id}`)}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-1 flex-1 min-w-0">
@@ -602,9 +606,15 @@ export default function DashboardPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="gap-2">
+                          <DropdownMenuItem 
+                            className="gap-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/projects/${project.id}`);
+                            }}
+                          >
                             <Eye className="h-4 w-4" />
-                            View Details
+                            Open Board
                           </DropdownMenuItem>
                           <DropdownMenuItem className="gap-2">
                             <Edit className="h-4 w-4" />
@@ -653,10 +663,18 @@ export default function DashboardPage() {
                             : project.createdBy.username}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {formatDate(project.createdAt)}
-                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-xs h-7 gap-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/projects/${project.id}`);
+                        }}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Open Board
+                      </Button>
                     </div>
                   </CardFooter>
                 </Card>
