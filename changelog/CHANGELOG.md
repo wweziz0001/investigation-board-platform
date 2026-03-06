@@ -6,6 +6,28 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.0.2] - 2025-03-06
+
+### 🔧 الإصلاحات
+
+#### إصلاح خطأ Cannot read properties of undefined في Investigation Board
+
+**المشكلة:**
+خطأ `Cannot read properties of undefined (reading 'id')` عند فتح لوحة التحقيق.
+
+**السبب:**
+مصفوفة `relationships` قد تحتوي على عناصر `undefined` أو `null`.
+
+**الحل:**
+إضافة `.filter(Boolean)` قبل `map()` لإزالة العناصر الفارغة.
+
+**الملفات المتأثرة:**
+- `src/components/board/investigation-board.tsx`
+
+**التفاصيل:** انظر `changelog/v2.0.2.md`
+
+---
+
 ## [2.0.1] - 2025-03-06
 
 ### 🔧 الإصلاحات
