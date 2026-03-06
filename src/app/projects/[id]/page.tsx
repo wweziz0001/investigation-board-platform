@@ -114,10 +114,10 @@ export default function ProjectPage() {
 
   // Project stats
   const stats = {
-    totalEvents: events.length,
-    totalConnections: relationships.length,
-    verifiedEvents: events.filter(e => e.verified).length,
-    lockedEvents: events.filter(e => e.isLocked).length,
+    totalEvents: events.filter(Boolean).length,
+    totalConnections: relationships.filter(Boolean).length,
+    verifiedEvents: events.filter(Boolean).filter(e => e.verified).length,
+    lockedEvents: events.filter(Boolean).filter(e => e.isLocked).length,
     onlineUsers: onlineUsers.length,
   };
 
@@ -159,6 +159,7 @@ export default function ProjectPage() {
 
   // Events with dates for timeline
   const eventsWithDates = events
+    .filter(Boolean)
     .filter(e => e.eventDate)
     .map(e => ({
       ...e,
