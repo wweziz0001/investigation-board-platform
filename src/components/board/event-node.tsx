@@ -97,54 +97,28 @@ function EventNodeComponent({ data, selected }: NodeProps) {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Connection handles - can connect from any side */}
-        <Handle
-          type="source"
-          position={Position.Top}
-          id="top"
-          className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-background hover:!bg-primary transition-colors"
-        />
+        {/* Connection handles */}
         <Handle
           type="target"
           position={Position.Top}
-          id="top-target"
-          className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-background hover:!bg-primary transition-colors !left-[60%]"
+          className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-background hover:!bg-primary transition-colors"
         />
         <Handle
           type="source"
           position={Position.Bottom}
-          id="bottom"
-          className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-background hover:!bg-primary transition-colors"
-        />
-        <Handle
-          type="target"
-          position={Position.Bottom}
-          id="bottom-target"
-          className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-background hover:!bg-primary transition-colors !left-[60%]"
-        />
-        <Handle
-          type="source"
-          position={Position.Left}
-          id="left"
           className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-background hover:!bg-primary transition-colors"
         />
         <Handle
           type="target"
           position={Position.Left}
-          id="left-target"
-          className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-background hover:!bg-primary transition-colors !top-[60%]"
+          id="left"
+          className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-background hover:!bg-primary transition-colors"
         />
         <Handle
           type="source"
           position={Position.Right}
           id="right"
           className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-background hover:!bg-primary transition-colors"
-        />
-        <Handle
-          type="target"
-          position={Position.Right}
-          id="right-target"
-          className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-background hover:!bg-primary transition-colors !top-[60%]"
         />
 
         {/* Main card */}

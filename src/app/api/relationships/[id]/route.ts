@@ -145,8 +145,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       lineWidth,
       isAnimated,
       isCurved,
-      sourceHandle,
-      targetHandle,
       evidence,
       source,
     } = body;
@@ -214,8 +212,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       lineWidth?: number;
       isAnimated?: boolean;
       isCurved?: boolean;
-      sourceHandle?: string | null;
-      targetHandle?: string | null;
       evidence?: string | null;
       source?: string | null;
     } = {};
@@ -278,14 +274,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (isCurved !== undefined) {
       updateData.isCurved = Boolean(isCurved);
-    }
-
-    if (sourceHandle !== undefined) {
-      updateData.sourceHandle = sourceHandle || null;
-    }
-
-    if (targetHandle !== undefined) {
-      updateData.targetHandle = targetHandle || null;
     }
 
     if (evidence !== undefined) {

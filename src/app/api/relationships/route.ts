@@ -126,8 +126,6 @@ export async function POST(request: NextRequest) {
       lineWidth = 2,
       isAnimated = false,
       isCurved = true,
-      sourceHandle,
-      targetHandle,
       evidence,
       source,
     } = body;
@@ -223,8 +221,7 @@ export async function POST(request: NextRequest) {
         lineWidth,
         isAnimated,
         isCurved,
-        sourceHandle: sourceHandle || null,
-        targetHandle: targetHandle || null,
+
         evidence: evidence?.trim() || null,
         source: source?.trim() || null,
         createdById: authResult.user.id,
@@ -262,3 +259,4 @@ export async function POST(request: NextRequest) {
     return apiError('Failed to create relationship', 500);
   }
 }
+// force reload

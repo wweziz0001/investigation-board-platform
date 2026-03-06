@@ -226,8 +226,6 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
       type: 'relationship',
       source: rel.sourceEventId,
       target: rel.targetEventId,
-      sourceHandle: rel.sourceHandle || undefined,
-      targetHandle: rel.targetHandle || undefined,
       data: {
         ...rel,
         color: rel.color || RELATIONSHIP_COLORS[rel.relationType] || RELATIONSHIP_COLORS.RELATED,
@@ -248,12 +246,7 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
   }, [relationships, setEdges]);
 
   // Create relationship helper
-  const createRelationship = async (
-    sourceId: string, 
-    targetId: string, 
-    sourceHandle?: string | null,
-    targetHandle?: string | null
-  ) => {
+  const createRelationship = async (sourceId: string, targetId: string) => {
     try {
       const response = await fetch('/api/relationships', {
         method: 'POST',
@@ -263,8 +256,6 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
           sourceEventId: sourceId,
           targetEventId: targetId,
           relationType: 'RELATED',
-          sourceHandle,
-          targetHandle,
         }),
       });
       const result = await response.json();
@@ -376,12 +367,7 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
   const onConnect = useCallback(
     (connection: Connection) => {
       if (connection.source && connection.target) {
-        createRelationship(
-          connection.source, 
-          connection.target,
-          connection.sourceHandle,
-          connection.targetHandle
-        );
+        createRelationship(connection.source, connection.target);
       }
     },
     [createRelationship]
