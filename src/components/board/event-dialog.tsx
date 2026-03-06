@@ -28,7 +28,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { ar } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EventNode as EventNodeType } from '@/stores/project-store';
@@ -256,7 +257,7 @@ export function EventDialog({ open, onOpenChange, event, onSubmit }: EventDialog
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.eventDate ? format(formData.eventDate, 'PPP') : 'Select date'}
+                    {formData.eventDate ? format(formData.eventDate, 'dd/MM/yyyy') : 'Select date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
