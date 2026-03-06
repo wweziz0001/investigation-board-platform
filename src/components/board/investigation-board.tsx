@@ -169,7 +169,7 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
 
   // Convert events to nodes
   useEffect(() => {
-    const filteredEvents = getFilteredEvents();
+    const filteredEvents = getFilteredEvents().filter(Boolean);
     const flowNodes: Node[] = filteredEvents.map((event) => ({
       id: event.id,
       type: 'event',
@@ -186,7 +186,7 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
 
   // Convert relationships to edges
   useEffect(() => {
-    const flowEdges: Edge[] = relationships.map((rel) => ({
+    const flowEdges: Edge[] = relationships.filter(Boolean).map((rel) => ({
       id: rel.id,
       type: 'relationship',
       source: rel.sourceEventId,
