@@ -6,6 +6,26 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.0.5] - 2025-03-06
+
+### 🎨 تحسينات التصميم
+
+#### تحسين صيغة عرض التاريخ
+
+**المشكلة:**
+التاريخ كان يظهر بصيغة غير واضحة تعتمد على إعدادات المتصفح.
+
+**الحل:**
+توحيد صيغة عرض التاريخ إلى `dd/MM/yyyy` في جميع أنحاء التطبيق.
+
+**الملفات المتأثرة:**
+- `src/components/board/event-dialog.tsx`
+- `src/components/board/event-node.tsx`
+
+**التفاصيل:** انظر `changelog/v2.0.5.md`
+
+---
+
 ## [2.0.4] - 2025-03-06
 
 ### 🔧 الإصلاحات

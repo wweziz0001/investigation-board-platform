@@ -26,6 +26,7 @@ import {
   Trash2,
   Link2,
 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 // Event type icons and colors
@@ -177,7 +178,16 @@ function EventNodeComponent({ data, selected }: NodeProps) {
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
                   <span>
-                    {new Date(nodeData.eventDate).toLocaleDateString()}
+                    {(() => {
+                      try {
+                        const date = typeof nodeData.eventDate === 'string' 
+                          ? parseISO(nodeData.eventDate) 
+                          : new Date(nodeData.eventDate);
+                        return format(date, 'dd/MM/yyyy');
+                      } catch {
+                        return nodeData.eventDate;
+                      }
+                    })()}
                     {nodeData.eventTime && ` ${nodeData.eventTime}`}
                   </span>
                 </div>
