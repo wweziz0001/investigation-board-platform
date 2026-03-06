@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-01-XX
+
+### Fixed
+- Fixed black shadow around relationship edges (comprehensive fix)
+- Explicitly set `filter: 'none'` on SVG path elements
+- Added CSS overrides to remove all React Flow default edge filters
+- Cleaned up edge component styling
+
 ## [2.1.0] - 2025-01-XX
 
 ### Fixed

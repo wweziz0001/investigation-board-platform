@@ -66,16 +66,22 @@ function RelationshipEdgeComponent({
 
   return (
     <>
-      {/* Main edge path */}
+      {/* Main edge path - no shadow/filter */}
       <path
         id={id}
         d={edgePath}
         style={{
-          ...style,
-          stroke: selected ? color : style.stroke as string || color,
-          strokeWidth: selected ? strokeWidth + 1 : strokeWidth,
+          stroke: color,
+          strokeWidth: strokeWidth,
+          fill: 'none',
+          filter: 'none',
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
         }}
-        className="transition-all duration-200"
+        className={cn(
+          'transition-colors duration-200',
+          selected && 'stroke-[3px]'
+        )}
         markerEnd={markerEnd}
       />
 
@@ -88,7 +94,6 @@ function RelationshipEdgeComponent({
             pointerEvents: 'all',
             borderColor: color,
             color: color,
-            ...(selected && { ringColor: color })
           }}
           className={cn(
             'px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200',
