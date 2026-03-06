@@ -179,10 +179,24 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
         color: event.color || EVENT_TYPE_COLORS[event.eventType] || EVENT_TYPE_COLORS.GENERAL,
         isSelected: selectedEventIds.includes(event.id),
         isConnecting: connectingFrom === event.id,
+        onEdit: () => {
+          setEditingEvent(event);
+          setShowEventDialog(true);
+        },
+        onConnect: () => {
+          setConnectingFrom(event.id);
+          toast.info('Select target event to connect');
+        },
+        onDelete: async () => {
+          if (confirm(`Delete event "${event.title}"?`)) {
+            await deleteEvent(event.id);
+            toast.success('Event deleted');
+          }
+        },
       },
     }));
     setNodes(flowNodes);
-  }, [events, selectedEventIds, searchQuery, filters, connectingFrom, getFilteredEvents, setNodes]);
+  }, [events, selectedEventIds, searchQuery, filters, connectingFrom, getFilteredEvents, setNodes, deleteEvent]);
 
   // Convert relationships to edges
   useEffect(() => {
