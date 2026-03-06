@@ -25,7 +25,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
   try {
     // Check project access - need ADMIN role to update members
-    const accessResult = await hasProjectAccess(id, authResult.user.id, 'ADMIN');
+    const accessResult = await hasProjectAccess(authResult.user.id, id, 'ADMIN');
     if (!accessResult.hasAccess) {
       return apiForbidden(accessResult.error);
     }
@@ -127,7 +127,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   try {
     // Check project access - need ADMIN role to remove members
-    const accessResult = await hasProjectAccess(id, authResult.user.id, 'ADMIN');
+    const accessResult = await hasProjectAccess(authResult.user.id, id, 'ADMIN');
     if (!accessResult.hasAccess) {
       return apiForbidden(accessResult.error);
     }

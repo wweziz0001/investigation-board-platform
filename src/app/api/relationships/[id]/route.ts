@@ -89,7 +89,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check project access
-    const accessResult = await hasProjectAccess(relationship.projectId, authResult.user.id);
+    const accessResult = await hasProjectAccess(authResult.user.id, relationship.projectId);
     if (!accessResult.hasAccess) {
       return apiForbidden(accessResult.error);
     }
@@ -123,8 +123,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Check project access - need at least MEMBER role to update relationships
     const accessResult = await hasProjectAccess(
-      existingRelationship.projectId,
       authResult.user.id,
+      existingRelationship.projectId,
       'MEMBER'
     );
     if (!accessResult.hasAccess) {
@@ -343,8 +343,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Check project access - need at least MEMBER role to delete relationships
     const accessResult = await hasProjectAccess(
-      existingRelationship.projectId,
       authResult.user.id,
+      existingRelationship.projectId,
       'MEMBER'
     );
     if (!accessResult.hasAccess) {

@@ -77,7 +77,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check project access
-    const accessResult = await hasProjectAccess(comment.projectId, authResult.user.id);
+    const accessResult = await hasProjectAccess(authResult.user.id, comment.projectId);
     if (!accessResult.hasAccess) {
       return apiForbidden(accessResult.error);
     }
@@ -111,8 +111,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Check project access
     const accessResult = await hasProjectAccess(
-      existingComment.projectId,
       authResult.user.id,
+      existingComment.projectId,
       'MEMBER'
     );
     if (!accessResult.hasAccess) {
@@ -196,8 +196,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Check project access
     const accessResult = await hasProjectAccess(
-      existingComment.projectId,
       authResult.user.id,
+      existingComment.projectId,
       'MEMBER'
     );
     if (!accessResult.hasAccess) {

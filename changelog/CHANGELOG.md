@@ -6,6 +6,35 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.0.1] - 2025-03-06
+
+### 🔧 الإصلاحات
+
+#### إصلاح ترتيب وسائط دالة hasProjectAccess
+
+**المشكلة:**
+جميع API routes كانت تُرجع خطأ 403 Forbidden عند محاولة الوصول للمشاريع.
+
+**السبب:**
+ترتيب الوسائط في استدعاء دالة `hasProjectAccess` كان خاطئاً - `hasProjectAccess(projectId, userId)` بدلاً من `hasProjectAccess(userId, projectId)`.
+
+**الملفات المتأثرة:**
+- `src/app/api/projects/[id]/route.ts`
+- `src/app/api/events/route.ts`
+- `src/app/api/events/[id]/route.ts`
+- `src/app/api/relationships/route.ts`
+- `src/app/api/relationships/[id]/route.ts`
+- `src/app/api/evidence/[id]/route.ts`
+- `src/app/api/comments/[id]/route.ts`
+- `src/app/api/projects/[id]/members/route.ts`
+- `src/app/api/projects/[id]/members/[memberId]/route.ts`
+- `src/stores/project-store.ts`
+- `src/app/page.tsx`
+
+**التفاصيل:** انظر `changelog/v2.0.1.md`
+
+---
+
 ## [2.0.0] - 2025-03-06
 
 ### 🚀 إصدار رئيسي جديد | Major Feature Release

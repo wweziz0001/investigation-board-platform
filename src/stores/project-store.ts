@@ -258,11 +258,11 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
           const eventsData = await eventsRes.json();
           const relationshipsData = await relationshipsRes.json();
 
-          if (projectData.success) {
-            set({ project: projectData.project });
-            if (projectData.project.boardViewport) {
+          if (projectData.success && projectData.data) {
+            set({ project: projectData.data });
+            if (projectData.data.boardViewport) {
               try {
-                const viewport = JSON.parse(projectData.project.boardViewport);
+                const viewport = JSON.parse(projectData.data.boardViewport);
                 set({ viewport });
               } catch {
                 // Invalid JSON
@@ -270,12 +270,12 @@ export const useProjectStore = create<ProjectState & ProjectActions>()(
             }
           }
 
-          if (eventsData.success) {
-            set({ events: eventsData.events || [] });
+          if (eventsData.success && eventsData.data) {
+            set({ events: eventsData.data });
           }
 
-          if (relationshipsData.success) {
-            set({ relationships: relationshipsData.relationships || [] });
+          if (relationshipsData.success && relationshipsData.data) {
+            set({ relationships: relationshipsData.data });
           }
         } catch (error) {
           set({ error: 'Failed to load project' });
