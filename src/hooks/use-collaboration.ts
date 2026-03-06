@@ -41,6 +41,7 @@ interface UserPresenceEvent {
 
 interface CollaborationState {
   isConnected: boolean;
+  isAvailable: boolean;
   currentProjectId: string | null;
   onlineUsers: OnlineUser[];
   lastUpdates: UpdateEvent[];
@@ -68,11 +69,14 @@ export function useCollaboration(): CollaborationHook {
   const socketRef = useRef<Socket | null>(null);
   const cursorThrottleRef = useRef<NodeJS.Timeout | null>(null);
   const pendingCursorRef = useRef<UserCursor | null>(null);
+  const connectionAttemptedRef = useRef(false);
+  const isAvailableRef = useRef(true);
   
   const user = useAuthStore((state) => state.user);
   
   const [state, setState] = useState<CollaborationState>({
     isConnected: false,
+    isAvailable: true, // Assume available until proven otherwise
     currentProjectId: null,
     onlineUsers: [],
     lastUpdates: [],
@@ -80,17 +84,22 @@ export function useCollaboration(): CollaborationHook {
 
   // Initialize socket connection
   useEffect(() => {
+    // Only attempt connection once
+    if (connectionAttemptedRef.current) return;
+    connectionAttemptedRef.current = true;
+
     // Connect to websocket server
-    // Never use PORT in the URL, always use XTransformPort
-    // DO NOT change the path, it is used by Caddy to forward the request to the correct port
-    const socketInstance = io('/?XTransformPort=3003', {
-      transports: ['websocket', 'polling'],
+    // Using relative path with XTransformPort for gateway routing
+    const socketInstance = io({
+      path: '/',
+      query: { XTransformPort: '3003' },
+      transports: ['polling', 'websocket'], // Try polling first
       forceNew: true,
       reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: 3, // Reduce attempts to fail faster
+      reconnectionDelay: 2000,
       reconnectionDelayMax: 5000,
-      timeout: 10000,
+      timeout: 5000, // Reduced timeout
     });
 
     socketRef.current = socketInstance;
@@ -98,7 +107,7 @@ export function useCollaboration(): CollaborationHook {
     // Connection events
     socketInstance.on('connect', () => {
       console.log('[Collaboration] Connected to server');
-      setState((prev) => ({ ...prev, isConnected: true }));
+      setState((prev) => ({ ...prev, isConnected: true, isAvailable: true }));
     });
 
     socketInstance.on('disconnect', (reason) => {
@@ -111,8 +120,18 @@ export function useCollaboration(): CollaborationHook {
       }));
     });
 
-    socketInstance.on('connect_error', (error) => {
-      console.error('[Collaboration] Connection error:', error.message);
+    socketInstance.on('connect_error', () => {
+      // Only log once to reduce noise
+      if (isAvailableRef.current) {
+        isAvailableRef.current = false;
+        console.warn('[Collaboration] Real-time collaboration unavailable. Working in offline mode.');
+        setState((prev) => ({ ...prev, isAvailable: false }));
+      }
+    });
+
+    socketInstance.io.on('reconnect_failed', () => {
+      console.warn('[Collaboration] Connection failed. Collaboration features disabled.');
+      setState((prev) => ({ ...prev, isAvailable: false }));
     });
 
     // User presence events
@@ -217,7 +236,7 @@ export function useCollaboration(): CollaborationHook {
   const joinProject = useCallback((projectId: string) => {
     const socket = socketRef.current;
     if (!socket || !user || !state.isConnected) {
-      console.warn('[Collaboration] Cannot join project: socket not ready or user not authenticated');
+      // Silently skip if collaboration is not available
       return;
     }
 
