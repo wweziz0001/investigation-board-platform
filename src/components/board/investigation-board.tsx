@@ -384,7 +384,7 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
 
   // Event types for filter
   const eventTypes = useMemo(() => {
-    const types = new Set(events.map((e) => e.eventType));
+    const types = new Set(events.filter(Boolean).map((e) => e.eventType));
     return Array.from(types);
   }, [events]);
 
