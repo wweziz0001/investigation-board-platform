@@ -68,6 +68,8 @@ export interface RelationshipEdge {
   lineWidth: number;
   isAnimated: boolean;
   isCurved: boolean;
+  sourceHandle?: string;
+  targetHandle?: string;
   createdAt: string;
   updatedAt: string;
 }
