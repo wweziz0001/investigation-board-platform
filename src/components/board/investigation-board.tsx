@@ -21,6 +21,7 @@ import {
   MarkerType,
   ConnectionLineType,
   SelectionMode,
+  ConnectionMode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
@@ -458,6 +459,7 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
         snapToGrid={snapToGrid}
         snapGrid={[20, 20]}
         connectionLineType={ConnectionLineType.SmoothStep}
+        connectionMode={ConnectionMode.Loose}
         deleteKeyCode="Delete"
         multiSelectionKeyCode="Shift"
         selectionOnDrag
