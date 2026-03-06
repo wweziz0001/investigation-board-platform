@@ -198,6 +198,26 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
     setNodes(flowNodes);
   }, [events, selectedEventIds, searchQuery, filters, connectingFrom, getFilteredEvents, setNodes, deleteEvent]);
 
+  // Handle delete relationship
+  const handleDeleteRelationship = async (relationshipId: string) => {
+    if (!confirm('Delete this connection?')) return;
+    
+    try {
+      const response = await fetch(`/api/relationships/${relationshipId}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+      if (result.success) {
+        deleteRelationship(relationshipId);
+        toast.success('Connection deleted');
+      } else {
+        toast.error(result.error || 'Failed to delete connection');
+      }
+    } catch {
+      toast.error('Failed to delete connection');
+    }
+  };
+
   // Convert relationships to edges
   useEffect(() => {
     const flowEdges: Edge[] = relationships.filter(Boolean).map((rel) => ({
@@ -205,9 +225,12 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
       type: 'relationship',
       source: rel.sourceEventId,
       target: rel.targetEventId,
+      sourceHandle: rel.sourceHandle || undefined,
+      targetHandle: rel.targetHandle || undefined,
       data: {
         ...rel,
         color: rel.color || RELATIONSHIP_COLORS[rel.relationType] || RELATIONSHIP_COLORS.RELATED,
+        onDelete: () => handleDeleteRelationship(rel.id),
       },
       style: {
         stroke: rel.color || RELATIONSHIP_COLORS[rel.relationType] || RELATIONSHIP_COLORS.RELATED,
@@ -224,7 +247,12 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
   }, [relationships, setEdges]);
 
   // Create relationship helper
-  const createRelationship = async (sourceId: string, targetId: string) => {
+  const createRelationship = async (
+    sourceId: string, 
+    targetId: string, 
+    sourceHandle?: string | null,
+    targetHandle?: string | null
+  ) => {
     try {
       const response = await fetch('/api/relationships', {
         method: 'POST',
@@ -234,6 +262,8 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
           sourceEventId: sourceId,
           targetEventId: targetId,
           relationType: 'RELATED',
+          sourceHandle,
+          targetHandle,
         }),
       });
       const result = await response.json();
@@ -345,7 +375,12 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
   const onConnect = useCallback(
     (connection: Connection) => {
       if (connection.source && connection.target) {
-        createRelationship(connection.source, connection.target);
+        createRelationship(
+          connection.source, 
+          connection.target,
+          connection.sourceHandle,
+          connection.targetHandle
+        );
       }
     },
     [createRelationship]

@@ -219,6 +219,8 @@ model Relationship {
   lineWidth       Int               @default(2)
   isAnimated      Boolean           @default(false)
   isCurved        Boolean           @default(true)
+  sourceHandle    String?           // Handle ID on source event (e.g., 'right')
+  targetHandle    String?           // Handle ID on target event (e.g., 'left')
 
   // Metadata
   evidence        String?           // Evidence supporting this relationship

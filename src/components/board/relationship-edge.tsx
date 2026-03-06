@@ -1,13 +1,15 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { 
   EdgeProps, 
   getBezierPath, 
-  getStraightPath, 
+  getSmoothStepPath,
   EdgeLabelRenderer 
 } from '@xyflow/react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Trash2 } from 'lucide-react';
 
 // Relationship type labels
 const RELATIONSHIP_LABELS: Record<string, string> = {
@@ -39,6 +41,7 @@ interface RelationshipEdgeData {
   lineWidth?: number;
   isAnimated?: boolean;
   isCurved?: boolean;
+  onDelete?: () => void;
 }
 
 function RelationshipEdgeComponent({
@@ -55,8 +58,9 @@ function RelationshipEdgeComponent({
   markerEnd,
 }: EdgeProps) {
   const edgeData = data as unknown as RelationshipEdgeData;
+  const [isHovered, setIsHovered] = useState(false);
   
-  // Check if curved or straight - default to curved (true)
+  // Check if curved or step - default to curved (true)
   const isCurved = edgeData?.isCurved !== false;
   
   // Get the appropriate path based on isCurved
@@ -74,11 +78,15 @@ function RelationshipEdgeComponent({
       targetPosition,
     });
   } else {
-    [edgePath, labelX, labelY] = getStraightPath({
+    // Use SmoothStep path for non-curved edges (90-degree bends)
+    [edgePath, labelX, labelY] = getSmoothStepPath({
       sourceX,
       sourceY,
+      sourcePosition,
       targetX,
       targetY,
+      targetPosition,
+      borderRadius: 8,
     });
   }
 
@@ -108,7 +116,7 @@ function RelationshipEdgeComponent({
         markerEnd={markerEnd}
       />
 
-      {/* Edge label */}
+      {/* Edge label and delete button */}
       <EdgeLabelRenderer>
         <div
           style={{
@@ -120,15 +128,30 @@ function RelationshipEdgeComponent({
           }}
           className={cn(
             'px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200',
-            'bg-background border',
+            'bg-background border flex items-center gap-1',
             selected && 'ring-1 ring-offset-1'
           )}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
         >
-          {label}
+          <span>{label}</span>
           {edgeData?.strength !== undefined && (
-            <span className="ml-1 opacity-60">
+            <span className="opacity-60">
               ({strength}%)
             </span>
+          )}
+          {isHovered && edgeData?.onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 p-0 ml-1 hover:bg-destructive/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                edgeData.onDelete?.();
+              }}
+            >
+              <Trash2 className="h-3 w-3 text-destructive" />
+            </Button>
           )}
         </div>
       </EdgeLabelRenderer>
