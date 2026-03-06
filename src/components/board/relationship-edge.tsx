@@ -1,7 +1,12 @@
 'use client';
 
 import { memo } from 'react';
-import { EdgeProps, getBezierPath, EdgeLabelRenderer } from '@xyflow/react';
+import { 
+  EdgeProps, 
+  getBezierPath, 
+  getStraightPath, 
+  EdgeLabelRenderer 
+} from '@xyflow/react';
 import { cn } from '@/lib/utils';
 
 // Relationship type labels
@@ -33,6 +38,7 @@ interface RelationshipEdgeData {
   lineStyle?: string;
   lineWidth?: number;
   isAnimated?: boolean;
+  isCurved?: boolean;
 }
 
 function RelationshipEdgeComponent({
@@ -50,23 +56,40 @@ function RelationshipEdgeComponent({
 }: EdgeProps) {
   const edgeData = data as unknown as RelationshipEdgeData;
   
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
+  // Check if curved or straight - default to curved (true)
+  const isCurved = edgeData?.isCurved !== false;
+  
+  // Get the appropriate path based on isCurved
+  let edgePath: string;
+  let labelX: number;
+  let labelY: number;
+  
+  if (isCurved) {
+    [edgePath, labelX, labelY] = getBezierPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+    });
+  } else {
+    [edgePath, labelX, labelY] = getStraightPath({
+      sourceX,
+      sourceY,
+      targetX,
+      targetY,
+    });
+  }
 
   const color = edgeData?.color || '#6b7280';
   const label = edgeData?.label || RELATIONSHIP_LABELS[edgeData?.relationType] || 'Related';
   const strength = edgeData?.strength || 50;
-  const strokeWidth = style.strokeWidth as number || 2;
+  const strokeWidth = (style.strokeWidth as number) || 2;
 
   return (
     <>
-      {/* Main edge path - no shadow/filter */}
+      {/* Main edge path */}
       <path
         id={id}
         d={edgePath}
