@@ -237,8 +237,8 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
         }),
       });
       const result = await response.json();
-      if (result.success) {
-        addRelationship(result.relationship);
+      if (result.success && result.data) {
+        addRelationship(result.data);
         toast.success('Connection created');
       } else {
         toast.error(result.error || 'Failed to create connection');
@@ -309,8 +309,8 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
         }),
       });
       const result = await response.json();
-      if (result.success) {
-        addEvent(result.event);
+      if (result.success && result.data) {
+        addEvent(result.data);
         toast.success('Event created');
       } else {
         toast.error(result.error || 'Failed to create event');
@@ -330,8 +330,8 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
         body: JSON.stringify(data),
       });
       const result = await response.json();
-      if (result.success) {
-        updateEvent(editingEvent.id, result.event);
+      if (result.success && result.data) {
+        updateEvent(editingEvent.id, result.data);
         toast.success('Event updated');
       } else {
         toast.error(result.error || 'Failed to update event');
@@ -711,8 +711,8 @@ function InvestigationBoardInner({ projectId }: InvestigationBoardProps) {
               body: JSON.stringify(data),
             });
             const result = await response.json();
-            if (result.success) {
-              updateRelationship(editingRelationship.id, result.relationship);
+            if (result.success && result.data) {
+              updateRelationship(editingRelationship.id, result.data);
               toast.success('Connection updated');
             }
           }
